@@ -1,4 +1,4 @@
-import sys, pickle, os.path, itertools, collections, errno
+import sys, pickle, os.path, itertools, collections, errno, getopt
 import numpy
 from pymclevel import mclevel
 import pymclevel.materials
@@ -367,12 +367,15 @@ class Merger(object):
     
     def __have_surrounding(self, contour, coords):
         """ Check if all surrounding fault line chunks are present """
+
+        if coords not in self.__level.allChunks:
+            return False
         
         for x in xrange(-1, 2):
             for z in xrange(-1, 2):
                 if (x, z) not in contour.edges:
                     continue
-                if (x, z) not in self.__level.allChunks:
+                if (coords[0] + x, coords[1] + z) not in self.__level.allChunks:
                     return False
         return True
     
@@ -395,11 +398,68 @@ class Merger(object):
         return reshaped
 
 if __name__ == '__main__':
+    # Define some defaults
     contour_file_name = 'contour.dat'
+    filt_factor = 1.7
+    filt_name = 'smooth'
     
-    if False:
-        world_dir = sys.argv[1]
-        
+    # Helpful usage information
+    def usage():
+        print "Usage: %s [options] <world_dir>" % os.path.basename(sys.argv[0])
+        print
+        print "Stitches together existing Minecraft map regions with newly generated areas"
+        print "by separating them with a river."
+        print
+        print "Uses a two phase process. First trace out the contour of the original map"
+        print "with the --trace mode. After generating the new areas, stitch them together"
+        print "by running in the default mode. The stitching phase may be executed multiple"
+        print "times if not all new chunks bordering with the old map are available."
+        print
+        print "Options:"
+        print "-h, --help                    displays this help"
+        print "-t, --trace                   tracing mode generates contour data for the"
+        print "                              original world before adding new areas"
+        print "-s, --smooth=<factor>         smoothing filter factor, default: %f" % filt_factor
+        print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
+        print "                              available: %s" % ', '.join(filter.filters.iterkeys())
+        print "-c, --contour=<file_name>     file that records the contour data in the"
+        print "                              world directory, default: %s" % contour_file_name
+        print "-r, --river-width=<val>       width of the river, default: %d" % (ChunkShaper.river_width*2)
+        print "-v, --valley-width=<val>      width of the valley, default: %d" % (ChunkShaper.valley_width*2)
+        print "    --river-height=<val>      y co-ord of river bottom, default: %d" % ChunkShaper.river_height
+        print "    --valley-height=<val>     y co-ord of valley bottom, default: %d" % ChunkShaper.valey_height
+        print "    --sea-level=<val>         y co-ord of sea level, default: %d" % ChunkShaper.sea_level
+        print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
+        print "                              both sides of a chunk, default: %f" % carve.narrowing_factor
+    
+    def error(msg):
+        print "For usage type: %s --help" % os.path.basename(sys.argv[0])
+        print
+        print "Error: %s" % msg
+        sys.exit(1)
+    
+    # Parse parameters
+    try:
+        opts, args = getopt.gnu_getopt(
+            sys.argv[1:],
+            "hts:f:c:r:v:",
+            ['help', 'trace', 'smooth=', 'filter=', 'contour=', 'river-width=',
+             'valley-width=', 'river-height=', 'valley-height=', 'sea-level=', 'narrow-factor=']
+        )
+    except getopt.GetoptError, e:
+        error(e)
+    
+    if len(args) < 1:
+        error("must provide world directory location")
+    elif len(args) > 1:
+        error("only one world location allowed")
+    else:
+        world_dir = args[0]
+    
+    trace_mode = any(opt in ('-t', '--trace') for opt, _ in opts)
+    
+    # Trace contour of the old world
+    if trace_mode:
         print "Finding world contour..."
         contour = Contour()
         contour.trace_world(world_dir)
@@ -408,13 +468,9 @@ if __name__ == '__main__':
         contour.write(os.path.join(world_dir, contour_file_name))
         
         print "World contour detection complete"
-        
-    if True:
-        world_dir = sys.argv[1]
-        river_width = 4
-        valley_width = 8
-        filt_name = 'smooth'
-        filt_factor = float(sys.argv[2])
+    
+    # Attempt to merge new chunks with old chunks
+    else:
         contour_data_file = os.path.join(world_dir, contour_file_name)
         
         if filt_name == 'gauss':
@@ -441,7 +497,7 @@ if __name__ == '__main__':
         total = len(contour.edges)
         def progress(n):
             print "%d/%d (%.1f%%)" % (n, total, 100.0*n/total)
-        merge.log_interval = 5
+        merge.log_interval = 10
         merge.log_function = progress
         reshaped = merge.erode(contour)
         

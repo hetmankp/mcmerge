@@ -126,7 +126,7 @@ def make_mask_straights(shape, width, components, straights):
     
     mask = numpy.zeros(shape, dtype=bool)
     for v in straights:
-        rwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(-v, components) else width
+        rwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(-v, components) else int(numpy.round(width))
         mask = numpy.logical_or(mask, mask_edge(shape, rwidth, v))
         
     return mask
@@ -137,8 +137,8 @@ def make_mask_corners(shape, width, components, concave, convex):
     mask = numpy.zeros(shape, dtype=bool)
     for corners, masker in ((concave, mask_concave_corner), (convex, mask_convex_corner)):
         for v in corners:
-            xwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([-1,  0], int), components) else width
-            zwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([ 0, -1], int), components) else width
+            xwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([-1,  0], int), components) else int(numpy.round(width))
+            zwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([ 0, -1], int), components) else int(numpy.round(width))
             mask = numpy.logical_or(mask, masker(shape, (xwidth, zwidth), v))
     
     return mask
