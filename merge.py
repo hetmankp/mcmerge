@@ -365,18 +365,15 @@ class Merger(object):
         else:
             return set(atr(getattr(materials, n)) for n in names if hasattr(materials, n))
     
-    def __have_surrounding(self, contour, coords):
+    def __have_surrounding(self, coords, edge):
         """ Check if all surrounding fault line chunks are present """
 
         if coords not in self.__level.allChunks:
             return False
         
-        for x in xrange(-1, 2):
-            for z in xrange(-1, 2):
-                if (x, z) not in contour.edges:
-                    continue
-                if (coords[0] + x, coords[1] + z) not in self.__level.allChunks:
-                    return False
+        for x, z in edge:
+            if (coords[0] + x, coords[1] + z) not in self.__level.allChunks:
+                return False
         return True
     
     def erode(self, contour):
@@ -384,7 +381,7 @@ class Merger(object):
         reshaped = []
         for n, (coord, edge) in enumerate(contour.edges.iteritems()):
             # We only re-shape when surrounding fault line land is present to prevent river spillage
-            if self.__have_surrounding(contour, coord):
+            if self.__have_surrounding(coord, edge):
                 cs = ChunkShaper(self.__level.getChunk(*coord), contour[coord], self.__blocks)
                 cs.reshape(self.filt_name, self.filt_factor)
                 reshaped.append(coord)
@@ -542,12 +539,16 @@ if __name__ == '__main__':
         merge = Merger(world_dir, contour, filt_name, filt_factor)
         
         print "Merging chunks:"
+        print
+        
         total = len(contour.edges)
+        width = len(str(total))
         def progress(n):
-            print "%d/%d (%.1f%%)" % (n, total, 100.0*n/total)
+            print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
         merge.log_interval = 10
         merge.log_function = progress
         reshaped = merge.erode(contour)
+        progress(total)
         
         print
         print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
