@@ -402,6 +402,7 @@ if __name__ == '__main__':
     contour_file_name = 'contour.dat'
     filt_factor = 1.7
     filt_name = 'smooth'
+    trace_mode = False
     
     # Helpful usage information
     def usage():
@@ -456,16 +457,63 @@ if __name__ == '__main__':
     else:
         world_dir = args[0]
     
-    trace_mode = any(opt in ('-t', '--trace') for opt, _ in opts)
+    if any(opt in ('-h', '--help') for opt, _ in opts):
+        usage()
+        sys.exit(0)
+    
+    def get_int(raw, name):
+        try:
+            return int(arg)
+        except ValueError:
+            error('%s must be an integer value' % name)
+    
+    def get_float(raw, name):
+        try:
+            return float(arg)
+        except ValueError:
+            error('%s must be a floating point number' % name)
+    
+    for opt, arg in opts:
+        if opt in ('-t', '--trace'):
+            trace_mode = True
+        elif opt in ('-s', '--smooth'):
+            filt_factor = get_float(arg, 'smoothing filter factor')
+        elif opt in ('-f', '--filter'):
+            if arg in filter.filters:
+                filt_name = arg
+            else:
+                error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
+        elif opt in ('-c', '--contour'):
+            contour_file_name = arg
+        elif opt in ('-r', '--river-width'):
+            val = get_int(arg, 'river width')
+            ChunkShaper.river_width = val / 2 + val % 2
+        elif opt in ('-v', '--valley-width'):
+            val = get_int(arg, 'valley width')
+            ChunkShaper.valley_width = val / 2 + val % 2
+        elif opt == '--river-height':
+            ChunkShaper.river_height = get_int(arg, 'river height')
+        elif opt == '--valley-height':
+            ChunkShaper.valey_height = get_int(arg, 'valley height')
+        elif opt == '--sea-level':
+            ChunkShaper.sea_level = get_int(arg, 'sea level')
+        elif opt == '--narrow-factor':
+            carve.narrowing_factor = get_int(arg, 'narrowing factor')
     
     # Trace contour of the old world
     if trace_mode:
         print "Finding world contour..."
         contour = Contour()
-        contour.trace_world(world_dir)
+        try:
+            contour.trace_world(world_dir)
+        except EnvironmentError, e:
+            error('could not read world contour: %e')
         
         print "Recording world contour..."
-        contour.write(os.path.join(world_dir, contour_file_name))
+        try:
+            contour.write(os.path.join(world_dir, contour_file_name))
+        except EnvironmentError, e:
+            error('could not write world contour data: %e')
         
         print "World contour detection complete"
     
@@ -507,8 +555,11 @@ if __name__ == '__main__':
         print "Updating contour data..."
         for coord in reshaped:
             del contour.edges[coord]
-            
-        if contour.edges:
-            contour.write(contour_data_file)
-        else:
-            os.remove(contour_data_file)
+        
+        try:
+            if contour.edges:
+                contour.write(contour_data_file)
+            else:
+                os.remove(contour_data_file)
+        except EnvironmentError, e:
+            error('could not updated world contour data: %e')
