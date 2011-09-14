@@ -68,7 +68,6 @@ Once you have the required bits installed, you can download this tool then fire 
 You can repeat steps 4 - 6 as many times as you need as the tool will keep track of which border areas haven't yet had new areas generated next to them.
 
 
-
 Configuration
 -------------
 
