@@ -2,8 +2,8 @@ from distutils.core import setup
 import py2exe
 
 setup(
-    console=['merge.py'],
-    zipfile='merge.lib',
+    console=['mcmerge.py'],
+    zipfile='mcmerge.lib',
     options={'py2exe': dict(
         dist_dir = 'dist',
         bundle_files = 1,

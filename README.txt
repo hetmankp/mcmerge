@@ -22,8 +22,18 @@ I have included some test files in the appropriately named testfiles directory t
 
 Setting up
 ----------
+To use this tool you will first need to install it. There are two available options.
 
-To use this tool you will first need to install Python and some libraries. This tool has not been tested with Python 3.0 so Python 2.7 is recommended. You can get the latest version from her:
+
+--Binary package--
+If you're on Windows you can just grab the mcmerge-win32 zip file available on the project download page. Unzip it and you're ready to run.
+
+If you are missing the requisite Microsoft distributable DLL files, mcmerge will fail. Try installing the Microsoft Visual C++ 2008 Redistributable Package (x86) first and you should be good to go. You can get it here:
+http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=29
+
+
+--Script package--
+On other platforms or if you want to set up the environment your self you will first need to install Python and some libraries. This tool has not been tested with Python 3.0 so Python 2.7 is recommended. You can get the latest version from her:
 
 http://www.python.org/download/
 
@@ -37,12 +47,12 @@ Both NumPy and SciPy have pre-built installable packages for Windows and OS X on
 
 I mentioned before that SciPy is optional. You will only need it if you use the 'gauss' filter option. This is not used by default so you can ignore it.
 
-Finally, you should install the python win32 extension. The utility seems to work OK without it but warning messages are displayed and there's no guarantee things will keep working in the future. You can find the download on the project page here:
+Finally, if you're on Windows, you should install the python win32 extension. The utility seems to work OK without it but warning messages are displayed and there's no guarantee things will keep working in the future. You can find the download on the project page here:
 http://sourceforge.net/projects/pywin32/
 
 
 Merging your world
-----------------
+------------------
 
 Once you have the required bits installed, you can download this tool then fire up the command line and cd over to the location of the script. Then follow these steps:
 
@@ -56,7 +66,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
 3. Run the contour trace phase on the map, for example (use the correct world name for you):
 
-   python merge.py --trace %AppData%\.minecraft\saves\World
+   python mcmerge.py --trace %AppData%\.minecraft\saves\World
 
    This places the file contour.dat in the world directory which will be read when merging.
 
@@ -64,7 +74,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
 5. Run the merging phase. You can tweak various parameters for the best look. Using the default configuration this will look something like the following (again, make sure you specify the correct world directory):
 
-   python merge.py --trace %AppData%\.minecraft\saves\World
+   python mcmerge.py --trace %AppData%\.minecraft\saves\World
 
 6. This is optional. The tool used to save the level doesn't always get the lighting right leading to some very dark looking areas. You can probably fix this up using MCEdit by relighting the boundary chunks.
 
@@ -76,7 +86,7 @@ You can repeat steps 4 - 6 as many times as you need as the tool will keep track
 Configuration
 -------------
 
-To see what options are available for you to fiddle with type: python merge.py --help
+To see what options are available for you to fiddle with type: python mcmerge.py --help
 
 A few things worth mentioning. Firstly there are two filters, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to look more boring. Note that the --smooth factor means different things for both these filters (for the 'smooth' filter, bigger means less smohting, where as for 'gauss' it's the reverse), however both will give similar results for a value of 1.7.
 
