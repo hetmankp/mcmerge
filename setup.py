@@ -11,5 +11,7 @@ setup(
         unbuffered = True,
         excludes = ['Tkconstants', 'Tkinter', 'tcl', 'scipy'],
         dll_excludes = ['w9xpopen.exe', 'mswsock.dll', 'powrprof.dll'],
-    )}
+    )},
+    author='Przemyslaw Wrzos',
+    license='MIT License',
 )
