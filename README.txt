@@ -37,6 +37,9 @@ Both NumPy and SciPy have pre-built installable packages for Windows and OS X on
 
 I mentioned before that SciPy is optional. You will only need it if you use the 'gauss' filter option. This is not used by default so you can ignore it.
 
+Finally, you should install the python win32 extension. The utility seems to work OK without it but warning messages are displayed and there's no guarantee things will keep working in the future. You can find the download on the project page here:
+http://sourceforge.net/projects/pywin32/
+
 
 Merging your world
 ----------------

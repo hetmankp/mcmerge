@@ -447,16 +447,16 @@ if __name__ == '__main__':
     except getopt.GetoptError, e:
         error(e)
     
+    if any(opt in ('-h', '--help') for opt, _ in opts):
+        usage()
+        sys.exit(0)
+    
     if len(args) < 1:
         error("must provide world directory location")
     elif len(args) > 1:
         error("only one world location allowed")
     else:
         world_dir = args[0]
-    
-    if any(opt in ('-h', '--help') for opt, _ in opts):
-        usage()
-        sys.exit(0)
     
     def get_int(raw, name):
         try:
