@@ -288,13 +288,14 @@ class Merger(object):
     terrain = (
         # Alpha blocks
         'Bedrock', 'BlockofDiamond', 'BlockofGold', 'BlockofIron', 'Brick', 'BrickSlab', 'Clay', 'CoalOre',
-        'Cobblestone', 'CobblestoneSlab', 'DiamondOre', 'Dirt', 'DoubleBrickSlab', 'DoubleCobblestoneSlab',
-        'DoubleSandstoneSlab', 'DoubleStoneSlab', 'DoubleStoneBrickSlab', 'DoubleWoodenSlab', 'Glass', 'Glowstone',
-        'GoldOre', 'Grass', 'Gravel', 'IronOre', 'LapisLazuliBlock', 'LapisLazuliOre', 'LavaActive',
-        'LavaStill', 'MossStone', 'Netherrack', 'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand',
-        'Sandstone', 'SandstoneSlab', 'Snow', 'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab',
-        'StoneBrickStairs', 'BrickStairs', 'StoneSlab', 'StoneStairs', 'StoneWithMonster', 'WoodPlanks',
-        'WoodenSlab', 'WoodenStairs',
+        'Cobblestone', 'CobblestoneSlab', 'CrackedStoneBricks', 'DiamondOre', 'Dirt', 'DoubleBrickSlab',
+        'DoubleCobblestoneSlab', 'DoubleSandstoneSlab', 'DoubleStoneSlab', 'DoubleStoneBrickSlab',
+        'DoubleWoodenSlab', 'Glass', 'Glowstone', 'GoldOre', 'Grass', 'Gravel', 'IronOre', 'LapisLazuliBlock',
+        'LapisLazuliOre', 'LavaActive', 'LavaStill', 'MossStone', 'MossyStoneBricks', 'Netherrack',
+        'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand', 'Sandstone', 'SandstoneSlab', 'Snow',
+        'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab', 'StoneBrickStairs', 'BrickStairs', 'StoneSlab',
+        'StoneStairs', 'HiddenSilverfishCobblestone', 'HiddenSilverfishStone', 'HiddenSilverfishStoneBrick',
+        'WoodPlanks', 'WoodenSlab', 'WoodenStairs',
         
         # Classic blocks
         'Adminium', 'BlockOfDiamond', 'BlockOfGold', 'BlockOfIron', 'InfiniteLavaSource', 'Rock', 'SingleStoneSlab',
@@ -305,9 +306,9 @@ class Merger(object):
         'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cactus', 'Cake', 'Chest',
         'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence', 'FenceGate',
         'Flower', 'Furnace', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern', 'Jukebox', 'LitFurnace',
-        'MonsterSpawner', 'NoteBlock', 'PoweredRail', 'Pumpkin', 'Rail', 'RedMushroom', 'RedstoneRepeaterOff',
-        'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub', 'Sign', 'SnowLayer', 'Sponge',
-        'SpruceSapling', 'StoneFloorPlate', 'SugarCane', 'TNT', 'TallGrass', 'TownEdge', 'TownEdge2',
+        'MelonStem', 'MonsterSpawner', 'NoteBlock', 'PoweredRail', 'Pumpkin', 'PumpkinStem', 'Rail',
+        'RedMushroom', 'RedstoneRepeaterOff', 'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub',
+        'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'SugarCane', 'TNT', 'TallGrass',
         'UnusedShrub', 'Watermelon', 'Web', 'WoodFloorPlate', 'WoodenDoor',
     )
     
