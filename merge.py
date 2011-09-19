@@ -82,9 +82,9 @@ class ChunkShaper(object):
     
     river_width = 4
     valley_width = 8
-    valey_height = 65
-    river_height = 59
-    sea_level = 63
+    valey_height = 64
+    river_height = 58
+    sea_level = 62
     
     def __init__(self, chunk, edge, blocks):
         """ Takes a pymclevel chunk as an initialiser """
@@ -290,7 +290,7 @@ class Merger(object):
         'Bedrock', 'BlockofDiamond', 'BlockofGold', 'BlockofIron', 'Brick', 'BrickSlab', 'Clay', 'CoalOre',
         'Cobblestone', 'CobblestoneSlab', 'DiamondOre', 'Dirt', 'DoubleBrickSlab', 'DoubleCobblestoneSlab',
         'DoubleSandstoneSlab', 'DoubleStoneSlab', 'DoubleStoneBrickSlab', 'DoubleWoodenSlab', 'Glass', 'Glowstone',
-        'GoldOre', 'Grass', 'Gravel', 'Ice', 'IronOre', 'LapisLazuliBlock', 'LapisLazuliOre', 'LavaActive',
+        'GoldOre', 'Grass', 'Gravel', 'IronOre', 'LapisLazuliBlock', 'LapisLazuliOre', 'LavaActive',
         'LavaStill', 'MossStone', 'Netherrack', 'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand',
         'Sandstone', 'SandstoneSlab', 'Snow', 'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab',
         'StoneBrickStairs', 'BrickStairs', 'StoneSlab', 'StoneStairs', 'StoneWithMonster', 'WoodPlanks',
@@ -318,7 +318,7 @@ class Merger(object):
     
     # Ignored when reshaping land
     water = (
-        'WaterActive', 'WaterStill',
+        'Ice', 'WaterActive', 'WaterStill',
     )
 
     # Tree trunks

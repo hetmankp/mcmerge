@@ -48,25 +48,27 @@ Once you have the required bits installed, you can download this tool then fire 
 
 1. Backup your world directory. If you or the tool breaks something you'll be able to recover. You can find your singleplayer maps in the following locations:
    
-   windows: %AppData%\.minecraft\saves
+   Windows: %AppData%\.minecraft\saves
    Linux: $HOME/.minecraft/saves
    OS X: Probably the same as Linux?
 
-2. Run the contour trace phase on the original map, for example (use the correct world name for you):
+2. Adjust sea height. This step is optional but highly recommended if moving to 1.8 from an older map. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. You can do this with MCEdit, nudge the whole world down by one block but make sure you leave the lowest most block level intact so you still have a solid bedrock.
+
+3. Run the contour trace phase on the map, for example (use the correct world name for you):
 
    python merge.py --trace %AppData%\.minecraft\saves\World
 
    This places the file contour.dat in the world directory which will be read when merging.
 
-3. Play some Minecraft to generate the new areas bordering with your old map.
+4. Play some Minecraft to generate the new areas bordering with your old map.
 
-4. Run the merging phase. You can tweak various parameters for the best look. Using the default configuration this will look something like the following (again, make sure you specify the correct world directory):
+5. Run the merging phase. You can tweak various parameters for the best look. Using the default configuration this will look something like the following (again, make sure you specify the correct world directory):
 
    python merge.py --trace %AppData%\.minecraft\saves\World
 
-5. This is optional. The tool used to save the level doesn't always get the lighting right leading to some very dark looking areas. You can probably fix this up using MCEdit by relighting the boundary chunks.
+6. This is optional. The tool used to save the level doesn't always get the lighting right leading to some very dark looking areas. You can probably fix this up using MCEdit by relighting the boundary chunks.
 
-6. Get back into the game and watch the floating debris disappear.
+7. Get back into the game and watch the floating debris disappear.
 
 You can repeat steps 4 - 6 as many times as you need as the tool will keep track of which border areas haven't yet had new areas generated next to them.
 
