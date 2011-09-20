@@ -317,12 +317,12 @@ class Merger(object):
     
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
-        'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cactus', 'Cake', 'Chest',
+        'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cake', 'Chest',
         'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence', 'FenceGate',
         'Flower', 'Furnace', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern', 'Jukebox', 'LitFurnace',
         'MelonStem', 'MonsterSpawner', 'NoteBlock', 'PoweredRail', 'Pumpkin', 'PumpkinStem', 'Rail',
         'RedMushroom', 'RedstoneRepeaterOff', 'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub',
-        'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'SugarCane', 'TNT', 'TallGrass',
+        'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass',
         'UnusedShrub', 'Watermelon', 'Web', 'WoodFloorPlate', 'WoodenDoor',
     )
     
@@ -337,14 +337,14 @@ class Merger(object):
     )
 
     # Tree trunks
-    tree_trunks = {
+    tree_trunks = (
         'BirchWood', 'Cactus', 'Ironwood', 'Mushroom', 'Mushroom2', 'SugarCane', 'Vines', 'Wood',
-    }
+    )
     
     # Leaves and their decayed versions
-    tree_leaves = {
+    tree_leaves = (
         'BirchLeaves', 'BirchLeavesDecaying', 'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying',
-    }
+    )
     
     BlockIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'water', 'tree_trunks', 'tree_leaves'])
     
