@@ -94,3 +94,21 @@ You can also fiddle with how wide the river and the valley the river flows throu
 
 
 Happy merging!
+
+
+Revision history
+----------------
+
+v0.1
+- Initial version
+- Places a river at old/new chunk interface and smooths with low pass filter
+
+v0.2
+- Fixed --help switch so works without supplying world
+- Modified sea level to be 1.8 compatible and added extra step to fix sea level disconnect
+- Ice is no longer treated as terrain to place river in
+- Updated to latest version of pymclevel; better support for 1.8 blocks
+- River corners now look rounder
+- Fixed exception with very wide valley/river values
+- Instead of exposed stone being transformed to dirt, the whole top layer is now shifted down; new switch controlling depth of this layer added
+- Added win32 executable
