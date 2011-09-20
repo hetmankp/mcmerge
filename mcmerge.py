@@ -168,19 +168,24 @@ class ChunkShaper(object):
             else:
                 self.__local_ids[coords], self.__local_data[coords] = block
         
-        def replace(coords, high, from_ids, block):
+        def replace(coords, high, from_ids, blocks):
             """
             Replace from_ids blocks (None == any) with specified block starting
             at the given coordinates in a column of specified height.
             """
             
+            try:
+                blocks = iter(blocks)
+            except TypeError:
+                blocks = itertools.cycle([blocks])
+                
             for y in xrange(coords[2], coords[2] + high, numpy.sign(high)):
                 xzy = (coords[0], coords[1], y)
                 if not inchunk(xzy):
                     return
                 if from_ids is None or self.__local_ids[xzy] in from_ids:
                     if self.__local_ids[xzy] not in self.__blocks.immutable:    # Leave immutable blocks alone!
-                        place(xzy, block)
+                        place(xzy, blocks.next())
                 
         def around(coords, block_ids):
             """ Check if block is surrounded on the sides by specified blocks """
@@ -219,8 +224,18 @@ class ChunkShaper(object):
                     
                     # Otherwise remove the block
                     elif curr != self.__empty.ID:
+                        top = []
+                        
                         # Remove if removable
                         if curr not in self.__blocks.immutable:
+                            # Remember what blocks were previously found at the top
+                            if n == 0:
+                                by = self.height[x, z]
+                                top = [(self.__local_ids[x, z, yi], self.__local_data[x, z, yi])
+                                        for yi in xrange(by, by - self.shift_depth, -1)
+                                        if yi >= 0]
+                            
+                            # Decide which block to replace current block with
                             if n == 0:
                                 # Move down supported blocks to new height
                                 by = self.height[x, z] + 1
@@ -234,6 +249,7 @@ class ChunkShaper(object):
                             else:
                                 new = self.__empty
                             
+                            # Replace current block
                             place((x, z, y), new)
                         
                         # Pretty things up a little where we've stripped things away
@@ -241,16 +257,20 @@ class ChunkShaper(object):
                             removed[x, z] = True
                             
                             if y - 1 >= 0:
-                                below = self.__local_ids[x, z, y - 1]
                                 materials = self.__chunk.world.materials
                                 
                                 # River bed
                                 if y - 1 <= self.sea_level:
                                     replace((x, z, y - 1), -2, None, materials.Sand)    # River bed
                                 
+                                # Shift down higher blocks
+                                elif top:
+                                    replace((x, z, y - 1), -len(top), None, top)
+                                
                                 # Bare dirt to grass
-                                elif below == materials.Dirt.ID:
-                                    self.__local_ids[x, z, y - 1] = materials.Grass.ID
+                                below = self.__local_ids[x, z, y - 1]
+                                if below == materials.Dirt.ID:
+                                    place((x, z, y - 1), materials.Grass)
         
         # Some improvements can only be made after all the blocks are eroded
         for x in xrange(0, mx):
@@ -266,17 +286,6 @@ class ChunkShaper(object):
                 # River water
                 if y <= self.sea_level:
                     replace((x, z, y), self.sea_level - y + 1, None, materials.WaterStill)  # River water
-                    
-                if removed[x, z]:
-                    # Surface stone to dirt
-                    if below in (materials.Stone.ID, materials.Grass.ID, materials.Dirt.ID):
-                        depth = self.shift_depth
-                        if y - depth - 1 >= 0 and materials.Stone.ID in self.__local_ids[x, z, y-depth:y]:
-                            if around((x, z, y - depth - 1), self.__blocks.terrain):
-                                if self.__local_ids[x, z, y - 1] not in self.__blocks.immutable:
-                                    place((x, z, y - 1), materials.Grass)
-                                replace((x, z, y - 2), 1 - depth, (materials.Stone.ID,), materials.Dirt)
-
         
         self.__chunk.Blocks.data = self.__local_ids.data
         self.__chunk.Data.data = self.__local_data.data
@@ -423,7 +432,7 @@ if __name__ == '__main__':
         print "-h, --help                    displays this help"
         print "-t, --trace                   tracing mode generates contour data for the"
         print "                              original world before adding new areas"
-        print "-s, --smooth=<factor>         smoothing filter factor, default: %f" % filt_factor
+        print "-s, --smooth=<factor>         smoothing filter factor, default: %.2f" % filt_factor
         print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
         print "-c, --contour=<file_name>     file that records the contour data in the"
@@ -434,7 +443,9 @@ if __name__ == '__main__':
         print "    --valley-height=<val>     y co-ord of valley bottom, default: %d" % ChunkShaper.valey_height
         print "    --sea-level=<val>         y co-ord of sea level, default: %d" % ChunkShaper.sea_level
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
-        print "                              both sides of a chunk, default: %f" % carve.narrowing_factor
+        print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
+        print "    --cover-depth=<val>       depth of blocks from surface that will be shifted"
+        print "                              down to form new eroded surface, default: %d" % ChunkShaper.shift_depth
     
     def error(msg):
         print "For usage type: %s --help" % os.path.basename(sys.argv[0])
@@ -448,7 +459,8 @@ if __name__ == '__main__':
             sys.argv[1:],
             "hts:f:c:r:v:",
             ['help', 'trace', 'smooth=', 'filter=', 'contour=', 'river-width=',
-             'valley-width=', 'river-height=', 'valley-height=', 'sea-level=', 'narrow-factor=']
+             'valley-width=', 'river-height=', 'valley-height=', 'sea-level=',
+             'narrow-factor=', 'cover-depth=']
         )
     except getopt.GetoptError, e:
         error(e)
@@ -502,6 +514,8 @@ if __name__ == '__main__':
             ChunkShaper.sea_level = get_int(arg, 'sea level')
         elif opt == '--narrow-factor':
             carve.narrowing_factor = get_int(arg, 'narrowing factor')
+        elif opt == '--cover-depth':
+            ChunkShaper.shift_depth = get_int(arg, 'cover depth')
     
     # Trace contour of the old world
     if trace_mode:
