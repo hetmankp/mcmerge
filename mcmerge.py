@@ -82,7 +82,7 @@ class ChunkShaper(object):
     
     river_width = 4
     valley_width = 8
-    valey_height = 64
+    valey_height = 65
     river_height = 58
     sea_level = 62
     

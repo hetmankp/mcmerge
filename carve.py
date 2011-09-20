@@ -5,10 +5,11 @@ import numpy
 import vec
 
 narrowing_factor = 1.5  # Used when river occupies both sides of a chunk
+corner_radius_offset = 0.9
 
-def trace_ellipse(centre, axes):
+def trace_ellipse(centre, axes, bound=((0, 0), (15, 15))):
     # Ellipse interior checking function
-    abs_axes = numpy.abs(numpy.array(axes))
+    abs_axes = numpy.abs(numpy.array(axes)) - corner_radius_offset
     ax2, az2 = numpy.power(abs_axes, 2)
     in_ellipse = lambda x, z: (float(x)**2/ax2 + float(z)**2/az2 < 1)
     
@@ -18,7 +19,9 @@ def trace_ellipse(centre, axes):
         for z in xrange(upper, -1, -1):
             if in_ellipse(x, z):
                 upper = z
-                yield numpy.cast[int](centre + numpy.sign(axes)*numpy.array([x, z]))
+                point = numpy.cast[int](centre + numpy.sign(axes)*numpy.array([x, z]))
+                if (numpy.array(bound[0]) <= point).all() and (numpy.array(bound[1]) >= point).all():
+                    yield point
                 break
 
 def mask_square(shape, inner, outer):
@@ -73,7 +76,7 @@ def mask_concave_corner(shape, widths, v):
     
     centre = (v+1)/2 * (numpy.array(shape) - 1)
     sign = numpy.sign(v)
-    ellipse = trace_ellipse(centre, -sign*widths)
+    ellipse = trace_ellipse(centre, -sign*widths, (numpy.zeros(len(shape), int), numpy.array(shape) - 1))
     limits = (numpy.sort([centre[1], z]) + numpy.array([0, 1]) for x, z in ellipse)
     return mask_lines(shape, limits, centre[0], -sign[0])
 
@@ -83,10 +86,11 @@ def mask_convex_corner(shape, widths, v):
     corner = (v+1)/2 * (numpy.array(shape) - 1)
     sign = numpy.sign(v)
     centre = corner - 2*sign*widths + sign*numpy.ones(corner.ndim, corner.dtype)
-    ellipse = trace_ellipse(centre, sign*widths)
-    limits1 = (numpy.sort([corner[1], z + sign[1]]) + numpy.array([0, 1]) for x, z in ellipse)
-    limits2 = (numpy.sort([corner[1], centre[1]]) + numpy.array([0, 1]) for z in xrange(0, int(numpy.abs(widths[1]))))
-    return mask_lines(shape, itertools.chain(limits1, limits2), centre[0], sign[0])
+    ellipse = list(trace_ellipse(centre, sign*widths, (numpy.zeros(len(shape), int), numpy.array(shape) - 1)))
+    clipped = numpy.maximum(numpy.minimum(centre, numpy.array(shape) - 1), numpy.zeros(len(shape), int))
+    limits1 = [numpy.sort([corner[1], z + sign[1]]) + numpy.array([0, 1]) for x, z in ellipse]
+    limits2 = (numpy.sort([corner[1], clipped[1]]) + numpy.array([0, 1]) for z in xrange(0, shape[0] - len(limits1)))
+    return mask_lines(shape, itertools.chain(limits1, limits2), clipped[0], sign[0])
 
 def get_straights(edge):
     """ Get vectors representing straight edges """
