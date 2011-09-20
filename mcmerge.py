@@ -86,6 +86,8 @@ class ChunkShaper(object):
     river_height = 58
     sea_level = 62
     
+    shift_depth = 3
+    
     def __init__(self, chunk, edge, blocks):
         """ Takes a pymclevel chunk as an initialiser """
         
@@ -177,7 +179,8 @@ class ChunkShaper(object):
                 if not inchunk(xzy):
                     return
                 if from_ids is None or self.__local_ids[xzy] in from_ids:
-                    place(xzy, block)
+                    if self.__local_ids[xzy] not in self.__blocks.immutable:    # Leave immutable blocks alone!
+                        place(xzy, block)
                 
         def around(coords, block_ids):
             """ Check if block is surrounded on the sides by specified blocks """
@@ -267,11 +270,13 @@ class ChunkShaper(object):
                 if removed[x, z]:
                     # Surface stone to dirt
                     if below in (materials.Stone.ID, materials.Grass.ID, materials.Dirt.ID):
-                        depth = 3
+                        depth = self.shift_depth
                         if y - depth - 1 >= 0 and materials.Stone.ID in self.__local_ids[x, z, y-depth:y]:
                             if around((x, z, y - depth - 1), self.__blocks.terrain):
-                                place((x, z, y - 1), materials.Grass)
+                                if self.__local_ids[x, z, y - 1] not in self.__blocks.immutable:
+                                    place((x, z, y - 1), materials.Grass)
                                 replace((x, z, y - 2), 1 - depth, (materials.Stone.ID,), materials.Dirt)
+
         
         self.__chunk.Blocks.data = self.__local_ids.data
         self.__chunk.Data.data = self.__local_data.data
