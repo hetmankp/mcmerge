@@ -16,10 +16,21 @@ FORCE:
 $(DIST_DIR)/mcmerge.exe: FORCE
 	python setup.py py2exe
 
-$(DIST_DIR)/$(WIN32_PKG): $(DIST_DIR)/mcmerge.exe
+$(DIST_DIR)/LICENCE.txt: LICENCE.txt pymclevel/LICENSE.txt
+	mkdir -p $(DIST_DIR)
+	echo "mcmerge licence" | unix2dos > $@
+	echo "---------------" | unix2dos >> $@
+	cat LICENCE.txt | unix2dos >> $@
+	echo | unix2dos >> $@
+	echo | unix2dos >> $@
+	echo "pymclevel licence" | unix2dos >> $@
+	echo "-----------------" | unix2dos >> $@
+	cat pymclevel/LICENSE.txt | unix2dos >> $@
+
+$(DIST_DIR)/$(WIN32_PKG): $(DIST_DIR)/mcmerge.exe $(DIST_DIR)/LICENCE.txt
 	mkdir -p $(DIST_DIR)
 	cp README.txt $(DIST_DIR)
-	(cd $(DIST_DIR); zip -m $(WIN32_PKG) mcmerge.exe mcmerge.lib README.txt)
+	(cd $(DIST_DIR); zip -m $(WIN32_PKG) mcmerge.exe mcmerge.lib README.txt LICENCE.txt)
 
 $(DIST_DIR)/$(SCRPT_PKG): FORCE
 	mkdir -p $(DIST_DIR)
