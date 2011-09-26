@@ -1,13 +1,78 @@
 """ Masks areas to be carved out based on contour """
 
 import itertools
-import numpy
+import numpy, scipy.interpolate, numpy.random
 import vec
 
 narrowing_factor = 1.5  # Used when river occupies both sides of a chunk
 corner_radius_offset = 0.9
 
+class Meander(object):
+    """
+    Using the 'seed' integer, used to produce a series of
+    values sampled at an integral interval, interpolated from
+    a random series at interval 'step' found in the
+    specified 'range'.
+    
+    If a final value is specified for the output series
+    then it's allowed to deviate by the 'final_precision'
+    fraction of the full range.
+    """
+    
+    def __init__(self, seed, step, range=(-1, 1), final_precision=0.05):
+        self.seed = seed
+        self.step = step
+        self.range = range
+        self.final_precision = final_precision
+    
+    def first(self):
+        """
+        Return value of the first point of the generated
+        series.
+        """
+        
+        gen = numpy.random.mtrand.RandomState(self.seed)
+        return gen.uniform(self.range[0], self.range[1], 1)[0]
+        
+    def series(self, points, final=None):
+        """
+        Produces a 'points' number long series of interpolated
+        values. If a 'final' vale is supplied then the last
+        value in the returned series will match this value to
+        within the precision specified by 'final_precision'.
+        """
+        
+        # Get the source random samples
+        source_points = int(numpy.ceil(float(points)/self.step))
+        
+        gen = numpy.random.mtrand.RandomState(self.seed)
+        y1 = gen.uniform(self.range[0], self.range[1], source_points)
+        #x1 = numpy.linspace(-(float(source_points) % step), float(points) - 1, source_points)
+        x1 = numpy.linspace(0, float(points) + float(source_points) % self.step - 1, source_points)
+        
+        # Adjust final sample to meet required result
+        if final is not None:
+            accept = abs(self.range[1] - self.range[0])*self.final_precision
+            for i in xrange(0, 20): # Really shouldn't go deeper than this but let's be sure
+                f = scipy.interpolate.interp1d(x1, y1, kind='cubic')
+                error = final - f(float(points) - 1)
+                if abs(error) < accept:
+                    break
+                else:
+                   y1[-1] = y1[-1] + error 
+        
+        # Find interpolated points
+        x2 = numpy.linspace(0.0, float(points) - 1, points)
+        y2 = scipy.interpolate.interp1d(x1, y1, kind='cubic')(x2)
+        
+        return y2
+
 def trace_ellipse(centre, axes, bound=((0, 0), (15, 15))):
+    """
+    Trace the pixels of a quadrant of a specified ellipse
+    constrained to within a given window.
+    """
+    
     # Ellipse interior checking function
     abs_axes = numpy.abs(numpy.array(axes)) - corner_radius_offset
     ax2, az2 = numpy.power(abs_axes, 2)
