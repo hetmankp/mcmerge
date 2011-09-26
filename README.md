@@ -36,8 +36,7 @@ http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=29
 
 
 ### Script package
-On other platforms or if you want to set up the environment your self you will first need to install Python and some libraries. This tool has not been tested with Python 3.0 so Python 2.7 is recommended. You can get the latest version from her:
-
+On other platforms or if you want to set up the environment your self you will first need to install Python and some libraries. This tool has not been tested with Python 3.0 so Python 2.7 is recommended. You can get the latest version from here:
 http://www.python.org/download/
 
 If you're downloading Python for Windows, it is recommended you install the plain version rather than the X86-64 version as some of the libraries required only come precompiled in 32-bit versions.
