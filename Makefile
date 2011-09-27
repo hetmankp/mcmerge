@@ -29,7 +29,7 @@ $(DIST_DIR)/LICENCE.txt: LICENCE.txt pymclevel/LICENSE.txt
 
 $(DIST_DIR)/$(WIN32_PKG): $(DIST_DIR)/mcmerge.exe $(DIST_DIR)/LICENCE.txt
 	mkdir -p $(DIST_DIR)
-	cp README.md $(DIST_DIR)/README.txt
+	cat README.md | sed 's/\\\\/\\/g' > $(DIST_DIR)/README.txt
 	(cd $(DIST_DIR); zip -m $(WIN32_PKG) mcmerge.exe mcmerge.lib README.txt LICENCE.txt)
 
 $(DIST_DIR)/$(SCRPT_PKG): FORCE
@@ -37,7 +37,7 @@ $(DIST_DIR)/$(SCRPT_PKG): FORCE
 	-rm -r $(SCRPT_BUILD)
 	mkdir -p $(SCRPT_BUILD)
 	mkdir -p $(SCRPT_BUILD)/pymclevel
-	cp README.md $(SCRPT_BUILD)/README.txt
+	cat README.md | sed 's/\\\\/\\/g' > $(SCRPT_BUILD)/README.txt
 	cp LICENCE.txt *.py $(SCRPT_BUILD)
 	cp $(addprefix pymclevel/,LICENSE.txt README.txt items.txt *.py) $(SCRPT_BUILD)/pymclevel
 	(cd $(SCRPT_BUILD); zip -r $(SCRPT_PKG) *)

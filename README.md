@@ -60,7 +60,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
 1.  Backup your world directory. If you or the tool breaks something you'll be able to recover. You can find your singleplayer maps in the following locations:
    
-    - Windows: %AppData%\.minecraft\saves
+    - Windows: %AppData%\\.minecraft\\saves
     - Linux: $HOME/.minecraft/saves
     - OS X: Probably the same as Linux?
 
