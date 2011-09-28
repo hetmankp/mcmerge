@@ -3,6 +3,7 @@ import numpy
 from pymclevel import mclevel
 import pymclevel.materials
 import vec, carve, filter
+from carve import ChunkSeed
 
 class Contour(object):
     """
@@ -97,6 +98,7 @@ class ChunkShaper(object):
         self.__empty = chunk.world.materials.Air
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
+        self.__seeder = ChunkSeed(chunk.world.RandomSeed, chunk.chunkPosition)
         self.height = self.__find_heights()
     
     def __find_heights(self):
@@ -119,8 +121,8 @@ class ChunkShaper(object):
         """ Carve out unsmoothed river bed """
         
         mx, mz = height.shape
-        mask1 = carve.make_mask((mx, mz), self.__edge, self.river_width - 1)
-        mask2 = carve.make_mask((mx, mz), self.__edge, self.river_width)
+        mask1 = carve.make_mask((mx, mz), self.__edge, self.river_width - 1, self.__seeder)
+        mask2 = carve.make_mask((mx, mz), self.__edge, self.river_width,     self.__seeder)
         res = numpy.empty((mx, mz), height.dtype)
         for x in xrange(0, mx):
             for z in xrange(0, mz):
@@ -137,7 +139,7 @@ class ChunkShaper(object):
         """ Carve out area which will slope down to river """
         
         mx, mz = height.shape
-        mask = carve.make_mask((mx, mz), self.__edge, self.valley_width)
+        mask = carve.make_mask((mx, mz), self.__edge, self.valley_width, self.__seeder)
         res = numpy.empty((mx, mz), height.dtype)
         for x in xrange(0, mx):
             for z in xrange(0, mz):
