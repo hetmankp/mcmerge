@@ -439,10 +439,23 @@ if __name__ == '__main__':
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
         print "-c, --contour=<file_name>     file that records the contour data in the"
         print "                              world directory, default: %s" % contour_file_name
+        print
         print "-r, --river-width=<val>       width of the river, default: %d" % (ChunkShaper.river_width*2)
         print "-v, --valley-width=<val>      width of the valley, default: %d" % (ChunkShaper.valley_width*2)
         print "    --river-height=<val>      y co-ord of river bottom, default: %d" % ChunkShaper.river_height
         print "    --valley-height=<val>     y co-ord of valley bottom, default: %d" % ChunkShaper.valey_height
+        print
+        print "    --river-centre-deviation=<low>,<high>"
+        print "                              lower and upper bound on river centre"
+        print "                              deviation, default: %d,%d" % carve.river_deviation_centre
+        print "    --river-width-deviation=<low>,<high>"
+        print "                              lower and upper bound on river width"
+        print "                              deviation, devault: %d,%d" % carve.river_deviation_width
+        print "    --river-centre-bend=<dst> distance between river centre bends"
+        print "                              default: %.1f" % carve.river_frequency_centre
+        print "    --river-width-bend=<dst>  distance between river width bends"
+        print "                              default: %.1f" % carve.river_frequency_width
+        print
         print "    --sea-level=<val>         y co-ord of sea level, default: %d" % ChunkShaper.sea_level
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
@@ -461,9 +474,12 @@ if __name__ == '__main__':
             sys.argv[1:],
             "hts:f:c:r:v:",
             ['help', 'trace', 'smooth=', 'filter=', 'contour=', 'river-width=',
-             'valley-width=', 'river-height=', 'valley-height=', 'sea-level=',
-             'narrow-factor=', 'cover-depth=']
+             'valley-width=', 'river-height=', 'valley-height=',
+             'river-centre-deviation=', 'river-width-deviation=',
+             'river-centre-bend=', 'river-width-bend=',
+             'sea-level=', 'narrow-factor=', 'cover-depth=']
         )
+
     except getopt.GetoptError, e:
         error(e)
     
@@ -490,6 +506,15 @@ if __name__ == '__main__':
         except ValueError:
             error('%s must be a floating point number' % name)
     
+    def get_ints(raw, name, count):
+        try:
+            ints = tuple(int(x) for x in raw.split(','))
+            if len(ints) != count:
+                raise ValueError
+            return ints
+        except ValueError:
+            error('%s must be %d comma separated integers' % (name, count))
+    
     for opt, arg in opts:
         if opt in ('-t', '--trace'):
             trace_mode = True
@@ -512,6 +537,14 @@ if __name__ == '__main__':
             ChunkShaper.river_height = get_int(arg, 'river height')
         elif opt == '--valley-height':
             ChunkShaper.valey_height = get_int(arg, 'valley height')
+        elif opt == '--river-centre-deviation':
+            carve.river_deviation_centre = get_ints(arg, 'river centre deviation', 2)
+        elif opt == '--river-width-deviation':
+            carve.river_deviation_width = get_ints(arg, 'river width deviation', 2)
+        elif opt == '--river-centre-bend':
+            carve.river_frequency_centre = get_float(arg, 'river centre bend distance')
+        elif opt == '--river-width-bend':
+            carve.river_frequency_width = get_float(arg, 'river width bend distance')
         elif opt == '--sea-level':
             ChunkShaper.sea_level = get_int(arg, 'sea level')
         elif opt == '--narrow-factor':

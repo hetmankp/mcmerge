@@ -9,8 +9,8 @@ corner_radius_offset = 0.9
 
 river_deviation_centre = (-2, 2)
 river_deviation_width = (-1, 1)
-river_frequency_centre = 4.5    # 3.2
-river_frequency_width = 3.2     # 2.7
+river_frequency_centre = 5.1
+river_frequency_width = 2.8
 
 
 class ChunkSeed(object):
