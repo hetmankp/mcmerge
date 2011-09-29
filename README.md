@@ -116,3 +116,4 @@ Revision history
 ### v0.3
 - Random river weaving so rivers along straight segments don't look so artificial
 - The SciPy library is no longer optional (for anyone using the script version)
+- Updated pymclevel and added support for merging with 1.9pre blocks

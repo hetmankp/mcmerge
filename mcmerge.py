@@ -307,11 +307,11 @@ class Merger(object):
         'Cobblestone', 'CobblestoneSlab', 'CrackedStoneBricks', 'DiamondOre', 'Dirt', 'DoubleBrickSlab',
         'DoubleCobblestoneSlab', 'DoubleSandstoneSlab', 'DoubleStoneSlab', 'DoubleStoneBrickSlab',
         'DoubleWoodenSlab', 'Glass', 'Glowstone', 'GoldOre', 'Grass', 'Gravel', 'IronOre', 'LapisLazuliBlock',
-        'LapisLazuliOre', 'LavaActive', 'LavaStill', 'MossStone', 'MossyStoneBricks', 'Netherrack',
-        'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand', 'Sandstone', 'SandstoneSlab', 'Snow',
-        'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab', 'StoneBrickStairs', 'BrickStairs', 'StoneSlab',
-        'StoneStairs', 'HiddenSilverfishCobblestone', 'HiddenSilverfishStone', 'HiddenSilverfishStoneBrick',
-        'WoodPlanks', 'WoodenSlab', 'WoodenStairs',
+        'LapisLazuliOre', 'LavaActive', 'LavaStill', 'MossStone', 'MossyStoneBricks', 'Mycelium', 'NetherBrick',
+        'NetherBrickStairs', 'Netherrack', 'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand', 'Sandstone',
+        'SandstoneSlab', 'Snow', 'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab', 'StoneBrickStairs',
+        'BrickStairs', 'StoneSlab', 'StoneStairs', 'HiddenSilverfishCobblestone', 'HiddenSilverfishStone',
+        'HiddenSilverfishStoneBrick', 'WoodPlanks', 'WoodenSlab', 'WoodenStairs',
         
         # Classic blocks
         'Adminium', 'BlockOfDiamond', 'BlockOfGold', 'BlockOfIron', 'InfiniteLavaSource', 'Rock', 'SingleStoneSlab',
@@ -322,9 +322,9 @@ class Merger(object):
         'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cake', 'Chest',
         'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence', 'FenceGate',
         'Flower', 'Furnace', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern', 'Jukebox', 'LitFurnace',
-        'MelonStem', 'MonsterSpawner', 'NoteBlock', 'PoweredRail', 'Pumpkin', 'PumpkinStem', 'Rail',
-        'RedMushroom', 'RedstoneRepeaterOff', 'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub',
-        'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass',
+        'MelonStem', 'MonsterSpawner', 'NetherBrickFence', 'NetherWart', 'NoteBlock', 'PoweredRail', 'Pumpkin',
+        'PumpkinStem', 'Rail', 'RedMushroom', 'RedstoneRepeaterOff', 'RedstoneRepeaterOn', 'RedstoneWire', 'Rose',
+        'Sapling', 'Shrub', 'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass',
         'UnusedShrub', 'Watermelon', 'Web', 'WoodFloorPlate', 'WoodenDoor',
     )
     
@@ -340,7 +340,7 @@ class Merger(object):
 
     # Tree trunks
     tree_trunks = (
-        'BirchWood', 'Cactus', 'Ironwood', 'Mushroom', 'Mushroom2', 'SugarCane', 'Vines', 'Wood',
+        'BirchWood', 'Cactus', 'Ironwood', 'HugeBrownMushroom', 'HugeRedMushroom', 'SugarCane', 'Vines', 'Wood',
     )
     
     # Leaves and their decayed versions
