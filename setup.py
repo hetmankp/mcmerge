@@ -9,7 +9,7 @@ setup(
         bundle_files = 1,
         compressed = True,
         unbuffered = True,
-        excludes = ['Tkconstants', 'Tkinter', 'tcl', 'scipy'],
+        excludes = ['Tkconstants', 'Tkinter', 'tcl'],
         dll_excludes = ['w9xpopen.exe', 'mswsock.dll', 'powrprof.dll'],
     )},
     author='Przemyslaw Wrzos',

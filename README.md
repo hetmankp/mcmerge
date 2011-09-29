@@ -42,12 +42,10 @@ http://www.python.org/download/
 If you're downloading Python for Windows, it is recommended you install the plain version rather than the X86-64 version as some of the libraries required only come precompiled in 32-bit versions.
 
 
-Once you have Python installed you will need to install the NumPy library (and optionally SciPy). You can find the download links at:
+Once you have Python installed you will need to install the NumPy and SciPy library. You can find the download links at:
 http://new.scipy.org/download.html
 
 Both NumPy and SciPy have pre-built installable packages for Windows and OS X on the SourceForge pages linked from the above page. Grab the latest version and you're ready to go.
-
-I mentioned before that SciPy is optional. You will only need it if you use the 'gauss' filter option. This is not used by default so you can ignore it.
 
 Finally, if you're on Windows, you should install the python win32 extension. The utility seems to work OK without it but warning messages are displayed and there's no guarantee things will keep working in the future. You can find the download on the project page here:
 http://sourceforge.net/projects/pywin32/
@@ -92,7 +90,7 @@ To see what options are available for you to fiddle with type: python mcmerge.py
 
 A few things worth mentioning. Firstly there are two filters, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to look more boring. Note that the --smooth factor means different things for both these filters (for the 'smooth' filter, bigger means less smohting, where as for 'gauss' it's the reverse), however both will give similar results for a value of 1.7.
 
-You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. Finally there's an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk.
+You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. Finally there's an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk.
 
 
 Happy merging!
@@ -114,3 +112,7 @@ Revision history
 - Fixed exception with very wide valley/river values
 - Instead of exposed stone being transformed to dirt, the whole top layer is now shifted down; new switch controlling depth of this layer added
 - Added win32 executable
+
+### v0.3
+- Random river weaving so rivers along straight segments don't look so artificial
+- The SciPy library is no longer optional (for anyone using the script version)
