@@ -7,8 +7,8 @@ import vec
 narrowing_factor = 1.5  # Used when river occupies both sides of a chunk
 corner_radius_offset = 0.9
 
-river_deviation_centre = 2
-river_deviation_width = 1
+river_deviation_centre = (-2, 2)
+river_deviation_width = (-1, 1)
 river_frequency_centre = 4.5    # 3.2
 river_frequency_width = 3.2     # 2.7
 
@@ -36,12 +36,12 @@ class ChunkSeed(object):
         side = self.location + numpy.cast[int]((side + numpy.ones(len(side)))/2)
         return side*self.level_seed
     
-    def river_centre(self, side):
+    def centre_seed(self, side):
         """ Seed for river centre generation """
         
         return numpy.cast[numpy.int32](self.__side_seed(side))
 
-    def river_width(self, side):
+    def width_seed(self, side):
         """ Seed for river width generation """
         
         return numpy.cast[numpy.int32](self.__side_seed(side)*2)
@@ -114,16 +114,16 @@ def river_shore(shape, seed, base_width, v):
     # Set up some required variables
     axis, axis_inv = (0, 1) if v[0] != 0 else (1, 0)
     next = numpy.ones(len(v), v.dtype); next[axis] = 0
-    centre_range = numpy.array([-river_deviation_centre, river_deviation_centre])
-    width_range =  numpy.array([-river_deviation_width, river_deviation_width])
+    centre_range = numpy.array(river_deviation_centre)
+    width_range =  numpy.array(river_deviation_width)
     
     # Discover the final point in the sequence based on the next block over
-    final_centre = Meander(seed.offset(next).river_centre(v), river_frequency_centre, centre_range).first()
-    final_width = Meander(seed.offset(next).river_width(v), river_frequency_width, width_range).first()
+    final_centre = Meander(seed.offset(next).centre_seed(v), river_frequency_centre, centre_range).first()
+    final_width = Meander(seed.offset(next).width_seed(v), river_frequency_width, width_range).first()
     
     # Find the centre and width sequences that will contribute to the overall river
-    river_centres = Meander(seed.river_centre(v), river_frequency_centre, centre_range).series(shape[axis_inv], final_centre)
-    river_widths = Meander(seed.river_width(v), river_frequency_width, width_range).series(shape[axis_inv], final_width)
+    river_centres = Meander(seed.centre_seed(v), river_frequency_centre, centre_range).series(shape[axis_inv], final_centre)
+    river_widths = Meander(seed.width_seed(v), river_frequency_width, width_range).series(shape[axis_inv], final_width)
     
     # Add everything up and make sure river never moves out of the chunk
     widths = (base_width + c*v[axis] + w for c, w in itertools.izip(river_centres, river_widths))
@@ -252,7 +252,8 @@ def make_mask_straights(shape, width, seed, components, straights):
     mask = numpy.zeros(shape, dtype=bool)
     for v in straights:
         base_width = int(numpy.round(width/narrowing_factor)) if vec.inside(-v, components) else int(numpy.round(width))
-        mask = numpy.logical_or(mask, mask_edge(shape, v, river_shore(shape, seed, base_width, v)))
+        shore = itertools.repeat(base_width) if seed is None else river_shore(shape, seed, base_width, v)
+        mask = numpy.logical_or(mask, mask_edge(shape, v, shore))
         
     return mask
 
@@ -265,7 +266,7 @@ def make_mask_corners(shape, width, seed, components, concave, convex):
             xwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([-1,  0], int), components) else int(numpy.round(width))
             zwidth = int(numpy.round(width/narrowing_factor)) if vec.inside(v*numpy.array([ 0, -1], int), components) else int(numpy.round(width))
             
-            if masker is mask_concave_corner:
+            if seed is not None and masker is mask_concave_corner:
                 xwidth = river_shore(shape, seed, xwidth, v*numpy.array([1, 0]))[shape[1] - 1 if v[0] > 0 else 0]
                 zwidth = river_shore(shape, seed, zwidth, v*numpy.array([0, 1]))[shape[0] - 1 if v[1] > 0 else 0]
             

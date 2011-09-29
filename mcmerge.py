@@ -139,7 +139,7 @@ class ChunkShaper(object):
         """ Carve out area which will slope down to river """
         
         mx, mz = height.shape
-        mask = carve.make_mask((mx, mz), self.__edge, self.valley_width, self.__seeder)
+        mask = carve.make_mask((mx, mz), self.__edge, self.valley_width, None)
         res = numpy.empty((mx, mz), height.dtype)
         for x in xrange(0, mx):
             for z in xrange(0, mz):
