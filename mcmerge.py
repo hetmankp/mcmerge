@@ -205,7 +205,7 @@ class ChunkShaper(object):
             for z in xrange(0, mz):
                 target = min(smoothed[x, z], self.height[x, z])
                 for n, y in enumerate(xrange(target + 1, self.__local_ids.shape[2])):
-                    curr = self.__local_ids[x, z, y]
+                    curr, curr_data = self.__local_ids[x, z, y], self.__local_data[x, z, y]
                     below = self.__local_ids[x, z, y - 1]
                     
                     # If this is a supported block, leave it alone
@@ -216,7 +216,15 @@ class ChunkShaper(object):
                     # Eliminate hovering trees but retain the rest
                     elif n > 0 and curr in self.__blocks.tree_trunks:
                         if below not in self.__blocks.tree_trunks:
+                            # Remove tree trunk
                             place((x, z, y), self.__empty)
+                            
+                            # Replace with sapling
+                            for (a, b), sapling in self.__blocks.tree_trunks_replace.iteritems():
+                                if a == curr and b & curr_data:
+                                    place((x, z, target + 1), sapling)
+                                    self.__local_data[x, z, target + 1] |= 8
+                                    break
                     
                     elif curr in self.__blocks.tree_leaves:
                         self.__local_data[x, z, y] |= 8
@@ -348,7 +356,12 @@ class Merger(object):
         'BirchLeaves', 'BirchLeavesDecaying', 'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying',
     )
     
-    BlockIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'water', 'tree_trunks', 'tree_leaves'])
+    # Tree trunk replace
+    tree_trunks_replace = {
+        'BirchWood': 'BirchSapling', 'Ironwood': 'SpruceSapling', 'Wood': 'Sapling',
+    }
+    
+    BlockIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
     def __init__(self, world_dir, contour, filt_name, filt_factor):
         self.filt_name = filt_name
@@ -361,7 +374,8 @@ class Merger(object):
                                       self.__block_material(self.immutable),
                                       self.__block_material(self.water),
                                       self.__block_material(self.tree_trunks),
-                                      self.__block_material(self.tree_leaves))
+                                      self.__block_material(self.tree_leaves),
+                                      self.__block_material(self.tree_trunks_replace, (('ID', 'blockData'), None)))
         
         self.log_interval = 1
         self.log_function = None
@@ -369,17 +383,28 @@ class Merger(object):
     def __block_material(self, names, attrs='ID'):
         """ Returns block attributes for those names that are present in the loaded level materials """
         
-        if attrs is None:
-            atr = lambda obj: obj
-        elif isinstance(attrs, basestring):
-            atr = lambda obj: getattr(obj, attrs)
-        else:
-            atr = lambda obj: tuple(getattr(obj, attr) for attr in attrs)
+        def cycle(it):
+            if it is None or isinstance(it, basestring):
+                return itertools.repeat(it)
+            else:
+                return itertools.cycle(it)
+        
+        def getter(attrs):
+            if attrs is None:
+                return lambda obj: obj
+            elif isinstance(attrs, basestring):
+                return lambda obj: getattr(obj, attrs)
+            else:
+                return lambda obj: tuple(obj if attr is None else getattr(obj, attr) for attr in attrs)
         
         materials = self.__level.materials
         if hasattr(names, 'iteritems'):
-            return dict([atr(getattr(materials, n)) for n in ns] for ns in names.iteritems() if all(hasattr(materials, n) for n in ns))
+            atrs = [getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
+            return dict([atrs[i](getattr(materials, n)) for i, n in enumerate(ns)]
+                        for ns in names.iteritems()
+                        if all(hasattr(materials, n) for n in ns))
         else:
+            atr = getter(attrs)
             return set(atr(getattr(materials, n)) for n in names if hasattr(materials, n))
     
     def __have_surrounding(self, coords, edge):
