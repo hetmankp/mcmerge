@@ -420,6 +420,7 @@ class Merger(object):
     
     def erode(self, contour):
         # Go through all the chunks that require smoothing
+        last_log = 0
         reshaped = []
         for n, (coord, edge) in enumerate(contour.edges.iteritems()):
             # We only re-shape when surrounding fault line land is present to prevent river spillage
@@ -432,9 +433,19 @@ class Merger(object):
             if self.log_function is not None:
                 if n % self.log_interval == 0:
                     self.log_function(n)
+                    last_log = n
         
-        self.__level.saveInPlace()
+        # Do final logging update for the end
+        if self.log_function is not None:
+            self.log_function(n + 1)
+        
         return reshaped
+    
+    def commit(self):
+        """ Finalise and save map """
+        
+        self.__level.generateLights()
+        self.__level.saveInPlace()
 
 if __name__ == '__main__':
     # Define some defaults
@@ -628,7 +639,10 @@ if __name__ == '__main__':
         merge.log_interval = 10
         merge.log_function = progress
         reshaped = merge.erode(contour)
-        progress(total)
+        
+        print
+        print "Relighting and saving..."
+        merge.commit()
         
         print
         print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)

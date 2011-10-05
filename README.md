@@ -76,9 +76,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
         python mcmerge.py %AppData%\.minecraft\saves\World
 
-6.  This is optional. The tool used to save the level doesn't always get the lighting right leading to some very dark looking areas. You can probably fix this up using MCEdit by relighting the boundary chunks.
-
-7.  Get back into the game and watch the floating debris disappear.
+6.  Get back into the game and watch the floating debris disappear.
 
 You can repeat steps 4 - 6 as many times as you need as the tool will keep track of which border areas haven't yet had new areas generated next to them.
 
