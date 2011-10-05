@@ -1,9 +1,12 @@
-import sys, pickle, os.path, itertools, collections, errno, getopt
+import sys, pickle, os.path, itertools, collections, errno, getopt, logging
 import numpy
 from pymclevel import mclevel
 import pymclevel.materials
 import vec, carve, filter
 from carve import ChunkSeed
+
+logging.basicConfig(format="... %(message)s")
+logging.getLogger().setLevel(logging.CRITICAL)
 
 class Contour(object):
     """
@@ -641,8 +644,11 @@ if __name__ == '__main__':
         reshaped = merge.erode(contour)
         
         print
-        print "Relighting and saving..."
+        print "Relighting and saving:"
+        print
+        logging.getLogger().setLevel(logging.INFO)
         merge.commit()
+        logging.getLogger().setLevel(logging.CRITICAL)
         
         print
         print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
