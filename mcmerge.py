@@ -313,6 +313,8 @@ class ChunkShaper(object):
         self.__chunk.chunkChanged() # Update internal chunk state
 
 class Shifter(object):
+    relight = True
+    
     def __init__(self, world_dir):
         self.__level = mclevel.fromFile(world_dir)
         
@@ -398,10 +400,13 @@ class Shifter(object):
     def commit(self):
         """ Finalise and save map """
         
-        self.__level.generateLights()
+        if self.relight:
+            self.__level.generateLights()
         self.__level.saveInPlace()
 
 class Merger(object):
+    relight = True
+    
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
@@ -536,7 +541,8 @@ class Merger(object):
     def commit(self):
         """ Finalise and save map """
         
-        self.__level.generateLights()
+        if self.relight:
+            self.__level.generateLights()
         self.__level.saveInPlace()
 
 if __name__ == '__main__':
@@ -600,6 +606,8 @@ if __name__ == '__main__':
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
         print "    --cover-depth=<val>       depth of blocks from surface that will be shifted"
         print "                              down to form new eroded surface, default: %d" % ChunkShaper.shift_depth
+        print
+        print "    --no-relight              don't do relighting (faster but leaves dark areas)"
     
     def error(msg):
         print "For usage type: %s --help" % os.path.basename(sys.argv[0])
@@ -617,7 +625,8 @@ if __name__ == '__main__':
              'valley-width=', 'river-height=', 'valley-height=',
              'river-centre-deviation=', 'river-width-deviation=',
              'river-centre-bend=', 'river-width-bend=',
-             'sea-level=', 'narrow-factor=', 'cover-depth=']
+             'sea-level=', 'narrow-factor=', 'cover-depth=',
+             'no-relight']
         )
 
     except getopt.GetoptError, e:
@@ -699,6 +708,9 @@ if __name__ == '__main__':
             carve.narrowing_factor = get_int(arg, 'narrowing factor')
         elif opt == '--cover-depth':
             ChunkShaper.shift_depth = get_int(arg, 'cover depth')
+        elif opt == '--no-relight':
+            Shifter.relight = False
+            Merger.relight = False
     
     # Make sure using only a single operational mode
     if trace_mode and shift_mode:
@@ -738,7 +750,7 @@ if __name__ == '__main__':
         width = len(str(total))
         def progress(n):
             print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
-        shift.log_interval = 100
+        shift.log_interval = 200
         shift.log_function = progress
         shifted = shift.shift(-shift_down)
         
