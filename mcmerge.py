@@ -711,20 +711,25 @@ if __name__ == '__main__':
         try:
             contour.trace_world(world_dir)
         except EnvironmentError, e:
-            error('could not read world contour: %e')
+            error('could not read world contour: %s' % e)
         
         print "Recording world contour..."
         try:
             contour.write(os.path.join(world_dir, contour_file_name))
         except EnvironmentError, e:
-            error('could not write world contour data: %e')
+            error('could not write world contour data: %s' % e)
         
         print "World contour detection complete"
     
     # Shift the map height
     elif shift_mode:
         print "Loading world..."
-        shift = Shifter(world_dir)
+        print
+        
+        try:
+            shift = Shifter(world_dir)
+        except EnvironmentError, e:
+            error('could not read world data: %s' % e)
         
         print "Shifting chunks:"
         print
@@ -741,7 +746,10 @@ if __name__ == '__main__':
         print "Relighting and saving:"
         print
         logging.getLogger().setLevel(logging.INFO)
-        shift.commit()
+        try:
+            shift.commit()
+        except EnvironmentError, e:
+            error('could not save world data: %s' % e)
         logging.getLogger().setLevel(logging.CRITICAL)
         
         print
@@ -769,7 +777,12 @@ if __name__ == '__main__':
                 sys.exit(1)
         
         print "Loading world..."
-        merge = Merger(world_dir, contour, filt_name, filt_factor)
+        print
+        
+        try:
+            merge = Merger(world_dir, contour, filt_name, filt_factor)
+        except EnvironmentError, e:
+            error('could not read world data: %s' % e)
         
         print "Merging chunks:"
         print
@@ -786,7 +799,10 @@ if __name__ == '__main__':
         print "Relighting and saving:"
         print
         logging.getLogger().setLevel(logging.INFO)
-        merge.commit()
+        try:
+            merge.commit()
+        except EnvironmentError, e:
+            error('could not save world data: %s' % e)
         logging.getLogger().setLevel(logging.CRITICAL)
         
         print
@@ -802,4 +818,4 @@ if __name__ == '__main__':
             else:
                 os.remove(contour_data_file)
         except EnvironmentError, e:
-            error('could not updated world contour data: %e')
+            error('could not updated world contour data: %s' % e)
