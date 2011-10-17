@@ -8,6 +8,8 @@ from carve import ChunkSeed
 logging.basicConfig(format="... %(message)s")
 logging.getLogger().setLevel(logging.CRITICAL)
 
+version = '0.4'
+
 class Contour(object):
     """
     Class for finding and recording the contour of the world. The contour
@@ -310,6 +312,95 @@ class ChunkShaper(object):
         self.remove(smoothed, erode_mask)
         self.__chunk.chunkChanged() # Update internal chunk state
 
+class Shifter(object):
+    def __init__(self, world_dir):
+        self.__level = mclevel.fromFile(world_dir)
+        
+        self.log_interval = 1
+        self.log_function = None
+    
+    @property
+    def level(self):
+        return self.__level
+    
+    def shift(self, distance):
+        # Calculate shift coordinates
+        height = self.__level.Height
+        if distance == 0:
+            return
+        elif distance < 0:
+            yfrom = (1 - distance, height)
+            yto = (1, height + distance)
+            ybuffer = (height + distance, height)
+        elif distance > 0:
+            yfrom = (1, height - distance)
+            yto = (1 + distance, height)
+            ybuffer = (1, 1 + distance)
+        
+        # Go through all the chunks and data around
+        for n, coord in enumerate(self.__level.allChunks):
+            # Progress logging
+            if self.log_function is not None:
+                if n % self.log_interval == 0:
+                    self.log_function(n)
+            
+            chunk = self.__level.getChunk(*coord)
+            for arr in (chunk.Blocks, chunk.Data, chunk.BlockLight, chunk.SkyLight):
+                # Do the shifting
+                arr[:, :, yto[0]:yto[1]] = arr[:, :, yfrom[0]:yfrom[1]]
+            
+                # Fill in gaps
+                copy_volume = arr.shape[0]*arr.shape[1]*(ybuffer[1] - ybuffer[0])
+                copy_edges = (arr.shape[0], arr.shape[1], ybuffer[1] - ybuffer[0])
+                if distance < 0:
+                    # For top of map we want to fill with air blocks
+                    custom = ((chunk.Blocks, chunk.world.materials.Air.ID), (chunk.Blocks, chunk.world.materials.Air.blockData))
+                    for which, val in custom:
+                        if arr is which:
+                            arr[:, :, ybuffer[0]:ybuffer[1]] = numpy.fromiter(itertools.repeat(val, copy_volume), arr.dtype).reshape(copy_edges)
+                            break
+                    
+                    # Just copy the lighting data from the top most row, this is probably bad...
+                    else:
+                        arr[:, :, ybuffer[0]:ybuffer[1]] = numpy.fromiter(itertools.islice(itertools.cycle(arr[:, :, height-1:height].flatten()), copy_volume), arr.dtype).reshape(copy_edges)
+                else:
+                    # Copy all data from the bottom row
+                    arr[:, :, ybuffer[0]:ybuffer[1]] = numpy.fromiter(itertools.islice(itertools.cycle(arr[:, :, 0:1].flatten()), copy_volume), arr.dtype).reshape(copy_edges)
+                        
+            # Shift all entity positions
+            for entity in chunk.Entities:
+                entity['Pos'][1].value += distance
+            
+            # Shift all tile entity positions
+            for entity in chunk.TileEntities:
+                entity['y'].value += distance
+                
+            # The chunk has changed!
+            chunk.chunkChanged()
+        
+        return n + 1
+        
+        def shiftY(coord, distance):
+            return [coord[0], coord[1] + distance, coord[2]]
+        
+        # Shift all player positions and spawns
+        for player in self.__level.players:
+            self.__level.setPlayerSpawnPosition(shiftY(self.__level.playerSpawnPosition(player), distance), player)
+            self.__level.setPlayerPosition(shiftY(self.__level.getPlayerPosition(player), distance), player)
+        
+        # Shift default spawn position
+        self.__level.setPlayerSpawnPosition(shiftY(self.__level.playerSpawnPosition(), distance))
+        
+        # Do final logging update for the end
+        if self.log_function is not None:
+            self.log_function(n + 1)
+        
+    def commit(self):
+        """ Finalise and save map """
+        
+        self.__level.generateLights()
+        self.__level.saveInPlace()
+
 class Merger(object):
     # These form the basis for the height map
     terrain = (
@@ -423,20 +514,18 @@ class Merger(object):
     
     def erode(self, contour):
         # Go through all the chunks that require smoothing
-        last_log = 0
         reshaped = []
         for n, (coord, edge) in enumerate(contour.edges.iteritems()):
+            # Progress logging
+            if self.log_function is not None:
+                if n % self.log_interval == 0:
+                    self.log_function(n)
+
             # We only re-shape when surrounding fault line land is present to prevent river spillage
             if self.__have_surrounding(coord, edge):
                 cs = ChunkShaper(self.__level.getChunk(*coord), contour[coord], self.__blocks)
                 cs.reshape(self.filt_name, self.filt_factor)
                 reshaped.append(coord)
-            
-            # Progress logging
-            if self.log_function is not None:
-                if n % self.log_interval == 0:
-                    self.log_function(n)
-                    last_log = n
         
         # Do final logging update for the end
         if self.log_function is not None:
@@ -455,7 +544,10 @@ if __name__ == '__main__':
     contour_file_name = 'contour.dat'
     filt_factor = 1.7
     filt_name = 'smooth'
+    shift_down = 1
+    
     trace_mode = False
+    shift_mode = False
     
     # Helpful usage information
     def usage():
@@ -469,10 +561,18 @@ if __name__ == '__main__':
         print "by running in the default mode. The stitching phase may be executed multiple"
         print "times if not all new chunks bordering with the old map are available."
         print
+        print "An optional third phase is available for shifting the sea-level of the map."
+        print "This is only necessary if moving between version 1.7 (or earlier) to version"
+        print "1.8 (or later). Use --shift to use this mode."
+        print
         print "Options:"
         print "-h, --help                    displays this help"
+        print "    --version                 prints the version number"
         print "-t, --trace                   tracing mode generates contour data for the"
         print "                              original world before adding new areas"
+        print "-l, --shift                   shifts the map height"
+        print "    --shift-down=<val>        number of blocks to shift the map down by, this"
+        print "                              may be negative for reverse effect, default: %d" % shift_down
         print "-s, --smooth=<factor>         smoothing filter factor, default: %.2f" % filt_factor
         print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
@@ -511,8 +611,9 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.gnu_getopt(
             sys.argv[1:],
-            "hts:f:c:r:v:",
-            ['help', 'trace', 'smooth=', 'filter=', 'contour=', 'river-width=',
+            "htls:f:c:r:v:",
+            ['help', 'version', 'trace', 'shift', 'shift-down=',
+             'smooth=', 'filter=', 'contour=', 'river-width=',
              'valley-width=', 'river-height=', 'valley-height=',
              'river-centre-deviation=', 'river-width-deviation=',
              'river-centre-bend=', 'river-width-bend=',
@@ -524,6 +625,10 @@ if __name__ == '__main__':
     
     if any(opt in ('-h', '--help') for opt, _ in opts):
         usage()
+        sys.exit(0)
+
+    if any(opt in ('--version',) for opt, _ in opts):
+        print "mcmerge v%s" % version
         sys.exit(0)
     
     if len(args) < 1:
@@ -557,6 +662,10 @@ if __name__ == '__main__':
     for opt, arg in opts:
         if opt in ('-t', '--trace'):
             trace_mode = True
+        elif opt in ('-l', '--shift'):
+            shift_mode = True
+        elif opt == '--shift-down':
+            shift_down = get_int(arg, 'shift down')
         elif opt in ('-s', '--smooth'):
             filt_factor = get_float(arg, 'smoothing filter factor')
         elif opt in ('-f', '--filter'):
@@ -591,6 +700,10 @@ if __name__ == '__main__':
         elif opt == '--cover-depth':
             ChunkShaper.shift_depth = get_int(arg, 'cover depth')
     
+    # Make sure using only a single operational mode
+    if trace_mode and shift_mode:
+        error('can not use shift and trace mode together')
+    
     # Trace contour of the old world
     if trace_mode:
         print "Finding world contour..."
@@ -608,6 +721,32 @@ if __name__ == '__main__':
         
         print "World contour detection complete"
     
+    # Shift the map height
+    elif shift_mode:
+        print "Loading world..."
+        shift = Shifter(world_dir)
+        
+        print "Shifting chunks:"
+        print
+        
+        total = sum(1 for _ in shift.level.allChunks)
+        width = len(str(total))
+        def progress(n):
+            print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
+        shift.log_interval = 100
+        shift.log_function = progress
+        shifted = shift.shift(-shift_down)
+        
+        print
+        print "Relighting and saving:"
+        print
+        logging.getLogger().setLevel(logging.INFO)
+        shift.commit()
+        logging.getLogger().setLevel(logging.CRITICAL)
+        
+        print
+        print "Finished shifting, shifted: %d chunks" % shifted
+
     # Attempt to merge new chunks with old chunks
     else:
         contour_data_file = os.path.join(world_dir, contour_file_name)
