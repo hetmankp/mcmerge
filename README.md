@@ -64,13 +64,13 @@ Once you have the required bits installed, you can download this tool then fire 
 
 2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. To do this run (make sure you have the correct world name):
 
-        python mcmerge.py --shift %AppData%\.minecraft\saves\World
+        python mcmerge.py --shift "%AppData%\.minecraft\saves\World"
 
     NOTE: If you experience any problems with this method you can still do this with MCEdit; nudge the whole world down by one block but make sure you leave the lower most block level intact so you still have a solid bedrock.
 
 3.  Run the contour trace phase on the map, for example (use the correct world name for you):
 
-        python mcmerge.py --trace %AppData%\.minecraft\saves\World
+        python mcmerge.py --trace "%AppData%\.minecraft\saves\World"
 
     This places the file contour.dat in the world directory which will be read when merging.
 
@@ -78,7 +78,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
 5.  Run the merging phase. You can tweak various parameters for the best look. Using the default configuration this will look something like the following (again, make sure you specify the correct world directory):
 
-        python mcmerge.py %AppData%\.minecraft\saves\World
+        python mcmerge.py "%AppData%\.minecraft\saves\World"
 
 6.  Get back into the game and watch the floating debris disappear.
 
