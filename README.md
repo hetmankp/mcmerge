@@ -125,3 +125,6 @@ Revision history
 - Removed floating trees are now replanted with an appropriate sapling
 - Added a relighting step so there are no more dark areas under overhangs (no longer need postprocessing with MCMerge)
 - Added a new phase for shifting the sea-height (no longer require MCMerge for this)
+
+### v0.4.1
+- Updated pymclevel and added support for merging with version 1.0 blocks

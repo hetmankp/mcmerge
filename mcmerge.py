@@ -6,9 +6,10 @@ import vec, carve, filter
 from carve import ChunkSeed
 
 logging.basicConfig(format="... %(message)s")
-logging.getLogger().setLevel(logging.CRITICAL)
+pymclevel_log = logging.getLogger('pymclevel')
+pymclevel_log.setLevel(logging.CRITICAL)
 
-version = '0.4'
+version = '0.4.1'
 
 class Contour(object):
     """
@@ -24,6 +25,14 @@ class Contour(object):
     
     def __init__(self):
         self.edges = {}
+    
+    def __surrounding(self, coord):
+        """Generate coordinates of all surrounding chunks"""
+        
+        for z in xrange(-1, 2):
+            for x in xrange(-1, 2):
+                if z != 0 or x != 0:
+                    yield (chunk[0] + x, chunk[1] + z)
         
     def __trace_edge(self, level, chunk):
         """
@@ -31,12 +40,10 @@ class Contour(object):
         vectors for the direction of contour faces.
         """
         
-        for z in xrange(-1, 2):
-            for x in xrange(-1, 2):
-                curr = (chunk[0] + x, chunk[1] + z)
-                if curr not in level.allChunks:
-                    self.edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
-                    self.edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
+        for (x, z) in self.__surrounding():
+            if curr not in level.allChunks:
+                self.edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
+                self.edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
     
     def __getitem__(self, coords):
         """ Interface return a numpy.array edge representation """
@@ -300,7 +307,7 @@ class ChunkShaper(object):
                     
                 # River water
                 if y <= self.sea_level:
-                    replace((x, z, y), self.sea_level - y + 1, None, materials.WaterStill)  # River water
+                    replace((x, z, y), self.sea_level - y + 1, None, materials.Water)  # River water
         
         self.__chunk.Blocks.data = self.__local_ids.data
         self.__chunk.Data.data = self.__local_data.data
@@ -410,53 +417,70 @@ class Merger(object):
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
-        'Bedrock', 'BlockofDiamond', 'BlockofGold', 'BlockofIron', 'Brick', 'BrickSlab', 'Clay', 'CoalOre',
-        'Cobblestone', 'CobblestoneSlab', 'CrackedStoneBricks', 'DiamondOre', 'Dirt', 'DoubleBrickSlab',
-        'DoubleCobblestoneSlab', 'DoubleSandstoneSlab', 'DoubleStoneSlab', 'DoubleStoneBrickSlab',
-        'DoubleWoodenSlab', 'Glass', 'Glowstone', 'GoldOre', 'Grass', 'Gravel', 'IronOre', 'LapisLazuliBlock',
-        'LapisLazuliOre', 'LavaActive', 'LavaStill', 'MossStone', 'MossyStoneBricks', 'Mycelium', 'NetherBrick',
-        'NetherBrickStairs', 'Netherrack', 'Obsidian', 'RedstoneOre', 'RedstoneOreGlowing', 'Sand', 'Sandstone',
-        'SandstoneSlab', 'Snow', 'SoulSand', 'Stone', 'StoneBricks', 'StoneBrickSlab', 'StoneBrickStairs',
-        'BrickStairs', 'StoneSlab', 'StoneStairs', 'HiddenSilverfishCobblestone', 'HiddenSilverfishStone',
-        'HiddenSilverfishStoneBrick', 'WoodPlanks', 'WoodenSlab', 'WoodenStairs',
+        'Bedrock', 'BlockofDiamond', 'BlockofGold', 'BlockofIron', 'Brick', 'BrickSlab', 'BrickStairs',
+        'Clay', 'CoalOre', 'Cobblestone', 'CobblestoneSlab', 'CrackedStoneBricks', 'DiamondOre', 'Dirt',
+        'DoubleBrickSlab', 'DoubleCobblestoneSlab', 'DoubleSandstoneSlab', 'DoubleStoneBrickSlab',
+        'DoubleStoneSlab', 'DoubleWoodenSlab', 'Glowstone', 'GoldOre', 'Grass', 'Gravel',
+        'HiddenSilverfishCobblestone', 'HiddenSilverfishStone', 'HiddenSilverfishStoneBrick',
+        'IronOre', 'LapisLazuliBlock', 'LapisLazuliOre', 'Lava', 'LavaActive', 'MossStone', 'MossyStoneBricks',
+        'Mycelium', 'NetherBrick', 'NetherBrickStairs', 'Netherrack', 'Obsidian', 'RedstoneOre',
+        'RedstoneOreGlowing', 'Sand', 'Sandstone', 'SandstoneSlab', 'Snow', 'SoulSand', 'Stone',
+        'StoneBrickSlab', 'StoneBrickStairs', 'StoneBricks', 'StoneSlab', 'StoneStairs', 'WoodPlanks',
+        'WoodenSlab', 'WoodenStairs'
         
-        # Classic blocks
-        'Adminium', 'BlockOfDiamond', 'BlockOfGold', 'BlockOfIron', 'InfiniteLavaSource', 'Rock', 'SingleStoneSlab',
+        # Indev
+        'InfiniteLava',
+        
+        # Pocket
+        'Lavaactive',
     )
     
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
         'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cake', 'Chest',
-        'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence', 'FenceGate',
-        'Flower', 'Furnace', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern', 'Jukebox', 'LitFurnace',
-        'MelonStem', 'MonsterSpawner', 'NetherBrickFence', 'NetherWart', 'NoteBlock', 'PoweredRail', 'Pumpkin',
-        'PumpkinStem', 'Rail', 'RedMushroom', 'RedstoneRepeaterOff', 'RedstoneRepeaterOn', 'RedstoneWire', 'Rose',
-        'Sapling', 'Shrub', 'Sign', 'SnowLayer', 'Sponge', 'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass',
-        'UnusedShrub', 'Watermelon', 'Web', 'WoodFloorPlate', 'WoodenDoor',
+        'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence',
+        'FenceGate', 'Flower', 'Furnace', 'Glass', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern',
+        'Jukebox', 'Lilypad', 'LitFurnace', 'MelonStem', 'MonsterSpawner', 'NetherBrickFence', 'NetherWart',
+        'NoteBlock', 'PoweredRail', 'Pumpkin', 'PumpkinStem', 'Rail', 'RedMushroom', 'RedstoneRepeaterOff',
+        'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub', 'Sign', 'SnowLayer', 'Sponge',
+        'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass', 'Trapdoor', 'UnusedShrub', 'Watermelon',
+        'Web', 'WoodFloorPlate', 'WoodenDoor'
     )
     
     # These will never be removed
     immutable = (
-        'Bedrock', 'Adminium',
+        'Bedrock',
     )
     
     # Ignored when reshaping land
     water = (
-        'Ice', 'WaterActive', 'WaterStill',
+        # Alpha
+        'Ice', 'WaterActive', 'Water',
+        
+        # Classic
+        'InfiniteWater',
+        
+        # Pocket
+        'Wateractive',
     )
 
     # Tree trunks
     tree_trunks = (
-        'BirchWood', 'Cactus', 'Ironwood', 'HugeBrownMushroom', 'HugeRedMushroom', 'SugarCane', 'Vines', 'Wood',
+        # Alpha
+        'BirchWood', 'Cactus', 'HugeBrownMushroom', 'HugeRedMushroom', 'Ironwood', 'SugarCane', 'Vines', 'Wood',
+        
+        # Pocket
+        'PineWood',
     )
     
     # Leaves and their decayed versions
     tree_leaves = (
-        'BirchLeaves', 'BirchLeavesDecaying', 'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying',
+        'BirchLeaves', 'BirchLeavesDecaying', 'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying'
     )
     
     # Tree trunk replace
     tree_trunks_replace = {
+        # Alpha
         'BirchWood': 'BirchSapling', 'Ironwood': 'SpruceSapling', 'Wood': 'Sapling',
     }
     
@@ -757,12 +781,12 @@ if __name__ == '__main__':
         print
         print "Relighting and saving:"
         print
-        logging.getLogger().setLevel(logging.INFO)
+        pymclevel_log.setLevel(logging.INFO)
         try:
             shift.commit()
         except EnvironmentError, e:
             error('could not save world data: %s' % e)
-        logging.getLogger().setLevel(logging.CRITICAL)
+        pymclevel_log.setLevel(logging.CRITICAL)
         
         print
         print "Finished shifting, shifted: %d chunks" % shifted
@@ -810,12 +834,12 @@ if __name__ == '__main__':
         print
         print "Relighting and saving:"
         print
-        logging.getLogger().setLevel(logging.INFO)
+        pymclevel_log.setLevel(logging.INFO)
         try:
             merge.commit()
         except EnvironmentError, e:
             error('could not save world data: %s' % e)
-        logging.getLogger().setLevel(logging.CRITICAL)
+        pymclevel_log.setLevel(logging.CRITICAL)
         
         print
         print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
