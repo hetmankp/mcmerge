@@ -32,7 +32,7 @@ class Contour(object):
         for z in xrange(-1, 2):
             for x in xrange(-1, 2):
                 if z != 0 or x != 0:
-                    yield (chunk[0] + x, chunk[1] + z)
+                    yield (coord[0] + x, coord[1] + z), (x, z)
         
     def __trace_edge(self, level, chunk):
         """
@@ -40,7 +40,7 @@ class Contour(object):
         vectors for the direction of contour faces.
         """
         
-        for (x, z) in self.__surrounding():
+        for curr, (x, z) in self.__surrounding(chunk):
             if curr not in level.allChunks:
                 self.edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
                 self.edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
