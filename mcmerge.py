@@ -2,14 +2,14 @@ import sys, pickle, os.path, itertools, collections, errno, getopt, logging
 import numpy
 from pymclevel import mclevel
 import pymclevel.materials
-import vec, carve, filter
+import ancillary, vec, carve, filter
 from carve import ChunkSeed
 
 logging.basicConfig(format="... %(message)s")
 pymclevel_log = logging.getLogger('pymclevel')
 pymclevel_log.setLevel(logging.CRITICAL)
 
-version = '0.4.1'
+version = '0.5.0'
 
 class Contour(object):
     """
@@ -412,6 +412,42 @@ class Shifter(object):
             self.__level.generateLights()
         self.__level.saveInPlace()
 
+class Relighter(object):
+    def __init__(self, world_dir):
+        self.__level = mclevel.fromFile(world_dir)
+        
+        self.log_interval = 1
+        self.log_function = None
+    
+    @property
+    def level(self):
+        return self.__level
+    
+    def relight(self):
+        # Go through all chunks
+        for n, coord in enumerate(self.__level.allChunks):
+            # Progress logging
+            if self.log_function is not None:
+                if n % self.log_interval == 0:
+                    self.log_function(n)
+            
+            # Mark for relighting
+            self.__level.getChunk(*coord).chunkChanged()
+        
+        # Do final logging update for the end
+        if self.log_function is not None:
+            self.log_function(n + 1)
+        
+        # Now pymclevel does the relighting work
+        self.__level.generateLights()
+        
+        return n + 1
+        
+    def commit(self):
+        """ Finalise and save map """
+        
+        self.__level.saveInPlace()
+
 class Merger(object):
     relight = True
     
@@ -577,44 +613,54 @@ if __name__ == '__main__':
     filt_name = 'smooth'
     shift_down = 1
     
-    trace_mode = False
-    shift_mode = False
+    class Modes(object):
+        __metaclass__ = ancillary.Enum
+        __elements__ = ['trace', 'shift', 'merge', 'relight']
     
     # Helpful usage information
     def usage():
-        print "Usage: %s [options] <world_dir>" % os.path.basename(sys.argv[0])
+        print "Usage: %s <mode> [options] <world_dir>" % os.path.basename(sys.argv[0])
         print
         print "Stitches together existing Minecraft map regions with newly generated areas"
         print "by separating them with a river."
         print
         print "Uses a two phase process. First trace out the contour of the original map"
-        print "with the --trace mode. After generating the new areas, stitch them together"
-        print "by running in the default mode. The stitching phase may be executed multiple"
+        print "with the 'trace' mode. After generating the new areas, stitch them together"
+        print "by running in the 'merge' mode. The stitching phase may be executed multiple"
         print "times if not all new chunks bordering with the old map are available."
         print
-        print "An optional third phase is available for shifting the sea-level of the map."
-        print "This is only necessary if moving between version 1.7 (or earlier) to version"
-        print "1.8 (or later). Use --shift to use this mode."
+        print "An optional additional phase is available to shift the sea-level of the map. It"
+        print "can be done before the other phases using the 'shift' mode. It is only necessary"
+        print "if moving between version 1.7 (or earlier) to verion 1.8 (or later) maps."
         print
+        print "Modes:"
+        print "  shift          shifts the map height up or down"
+        print "  trace          generates contour data for the original world before"
+        print "                 new areas are added"
+        print "  merge          merges and smooths the old and new areas together using the"
+        print "                 data collected in the trace phase"
+        print "  relight        relights all chunks in the world without doing anything"
+        print "                 else, note that other modes do this automatically"
+        print 
         print "Options:"
         print "-h, --help                    displays this help"
         print "    --version                 prints the version number"
-        print "-t, --trace                   tracing mode generates contour data for the"
-        print "                              original world before adding new areas"
-        print "-l, --shift                   shifts the map height"
-        print "    --shift-down=<val>        number of blocks to shift the map down by, this"
-        print "                              may be negative for reverse effect, default: %d" % shift_down
+        print
+        print "-d  --shift-down=<val>        number of blocks to shift the map down by, this"
+        print "                              may be negative to shift up instead, default: %d" % shift_down
+        print
+        print "-c, --contour=<file_name>     file that records the contour data in the"
+        print "                              world directory, default: %s" % contour_file_name
+        print "    --no-relight              don't do relighting in modes that do this by"
+        print "                              default, this is faster but leaves dark areas"
+        print
         print "-s, --smooth=<factor>         smoothing filter factor, default: %.2f" % filt_factor
         print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
-        print "-c, --contour=<file_name>     file that records the contour data in the"
-        print "                              world directory, default: %s" % contour_file_name
-        print
         print "-r, --river-width=<val>       width of the river, default: %d" % (ChunkShaper.river_width*2)
         print "-v, --valley-width=<val>      width of the valley, default: %d" % (ChunkShaper.valley_width*2)
         print "    --river-height=<val>      y co-ord of river bottom, default: %d" % ChunkShaper.river_height
         print "    --valley-height=<val>     y co-ord of valley bottom, default: %d" % ChunkShaper.valey_height
-        print
         print "    --river-centre-deviation=<low>,<high>"
         print "                              lower and upper bound on river centre"
         print "                              deviation, default: %d,%d" % carve.river_deviation_centre
@@ -631,8 +677,6 @@ if __name__ == '__main__':
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
         print "    --cover-depth=<val>       depth of blocks transferred from original surface"
         print "                              to carved out valley bottom, default: %d" % ChunkShaper.shift_depth
-        print
-        print "    --no-relight              don't do relighting (faster but leaves dark areas)"
     
     def error(msg):
         print "For usage type: %s --help" % os.path.basename(sys.argv[0])
@@ -644,14 +688,13 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.gnu_getopt(
             sys.argv[1:],
-            "htls:f:c:r:v:",
-            ['help', 'version', 'trace', 'shift', 'shift-down=',
-             'smooth=', 'filter=', 'contour=', 'river-width=',
-             'valley-width=', 'river-height=', 'valley-height=',
-             'river-centre-deviation=', 'river-width-deviation=',
-             'river-centre-bend=', 'river-width-bend=',
-             'sea-level=', 'narrow-factor=', 'cover-depth=',
-             'no-relight']
+            "hs:f:c:d:r:v:",
+            ['help', 'version', 'shift-down=', 'smooth=', 'filter=',
+             'contour=', 'river-width=', 'valley-width=', 'river-height=',
+             'valley-height=', 'river-centre-deviation=',
+             'river-width-deviation=', 'river-centre-bend=',
+             'river-width-bend=','sea-level=', 'narrow-factor=',
+             'cover-depth=', 'no-relight']
         )
 
     except getopt.GetoptError, e:
@@ -666,11 +709,13 @@ if __name__ == '__main__':
         sys.exit(0)
     
     if len(args) < 1:
+        error("must specify usage mode")
+    elif len(args) < 2:
         error("must provide world directory location")
-    elif len(args) > 1:
-        error("only one world location allowed")
+    elif len(args) > 2:
+        error("only one world location may be specified")
     else:
-        world_dir = args[0]
+        world_dir = args[1]
     
     def get_int(raw, name):
         try:
@@ -693,12 +738,21 @@ if __name__ == '__main__':
         except ValueError:
             error('%s must be %d comma separated integers' % (name, count))
     
+    # Determine the mode, accepts word abbreviations
+    mode = None
+    for e in Modes():
+        if str(e).startswith(args[0].lower()):
+            if mode is None:
+                mode = e
+            else:
+                error("ambiguous mode name '%s', please provide full name" % args[0])
+                
+    if mode is None:
+        error("unrecognised mode '%s'" % args[0])
+    
+    # Get options
     for opt, arg in opts:
-        if opt in ('-t', '--trace'):
-            trace_mode = True
-        elif opt in ('-l', '--shift'):
-            shift_mode = True
-        elif opt == '--shift-down':
+        if opt in ('-d', '--shift-down'):
             shift_down = get_int(arg, 'shift down')
         elif opt in ('-s', '--smooth'):
             filt_factor = get_float(arg, 'smoothing filter factor')
@@ -737,12 +791,8 @@ if __name__ == '__main__':
             Shifter.relight = False
             Merger.relight = False
     
-    # Make sure using only a single operational mode
-    if trace_mode and shift_mode:
-        error('can not use shift and trace mode together')
-    
     # Trace contour of the old world
-    if trace_mode:
+    if mode is Modes.trace:
         print "Finding world contour..."
         contour = Contour()
         try:
@@ -759,7 +809,7 @@ if __name__ == '__main__':
         print "World contour detection complete"
     
     # Shift the map height
-    elif shift_mode:
+    elif mode is Modes.shift:
         print "Loading world..."
         print
         
@@ -793,7 +843,7 @@ if __name__ == '__main__':
         print "Finished shifting, shifted: %d chunks" % shifted
 
     # Attempt to merge new chunks with old chunks
-    else:
+    elif mode is Modes.merge:
         contour_data_file = os.path.join(world_dir, contour_file_name)
         
         if filt_name == 'gauss':
@@ -856,3 +906,36 @@ if __name__ == '__main__':
                 os.remove(contour_data_file)
         except EnvironmentError, e:
             error('could not updated world contour data: %s' % e)
+            
+    # Relight all the chunks on the map
+    elif mode is Modes.relight:
+        print "Loading world..."
+        print
+        
+        try:
+            relight = Relighter(world_dir)
+        except EnvironmentError, e:
+            error('could not read world data: %s' % e)
+        
+        print "Marking and relighting chunks:"
+        print
+        
+        pymclevel_log.setLevel(logging.INFO)
+        relit = relight.relight()
+        
+        print
+        print "Saving:"
+        print
+        
+        try:
+            relight.commit()
+        except EnvironmentError, e:
+            error('could not save world data: %s' % e)
+        pymclevel_log.setLevel(logging.CRITICAL)
+        
+        print
+        print "Finished relighting, relit: %d chunks" % relit
+    
+    # Should have found the right mode already!
+    else:
+        error("something went horribly wrong performing mode '%s'" % mode)
