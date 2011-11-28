@@ -388,8 +388,6 @@ class Shifter(object):
             # The chunk has changed!
             chunk.chunkChanged()
         
-        return n + 1
-        
         def shiftY(coord, distance):
             return [coord[0], coord[1] + distance, coord[2]]
         
@@ -404,6 +402,8 @@ class Shifter(object):
         # Do final logging update for the end
         if self.log_function is not None:
             self.log_function(n + 1)
+        
+        return n + 1
         
     def commit(self):
         """ Finalise and save map """
