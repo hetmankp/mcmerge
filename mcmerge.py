@@ -267,12 +267,13 @@ class ChunkShaper(object):
                                     else:
                                         new = self.__empty
                             elif y - 1 <= self.sea_level and curr in self.__blocks.water:
-                                pass   # Don't remove water below sea level
+                                new = None      # Don't remove water below sea level
                             else:
                                 new = self.__empty
                             
                             # Replace current block
-                            place((x, z, y), new)
+                            if new is not None:
+                                place((x, z, y), new)
                         
                         # Pretty things up a little where we've stripped things away
                         if n == 0:
