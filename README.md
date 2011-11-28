@@ -136,3 +136,4 @@ Revision history
 - Fixed shift mode so that player and spawn location are also shifted
 - Modes are no longer specified by options but by a new mandatory parameter
 - Added new mode 'relight' that does not alter the world but simply relights all chunks
+- Made trace mode considerably more efficient
