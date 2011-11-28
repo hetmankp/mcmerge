@@ -629,8 +629,8 @@ if __name__ == '__main__':
         print "    --sea-level=<val>         y co-ord of sea level, default: %d" % ChunkShaper.sea_level
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
-        print "    --cover-depth=<val>       depth of blocks from surface that will be shifted"
-        print "                              down to form new eroded surface, default: %d" % ChunkShaper.shift_depth
+        print "    --cover-depth=<val>       depth of blocks transferred from original surface"
+        print "                              to carved out valley bottom, default: %d" % ChunkShaper.shift_depth
         print
         print "    --no-relight              don't do relighting (faster but leaves dark areas)"
     
