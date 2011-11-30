@@ -137,3 +137,7 @@ Revision history
 - Modes are no longer specified by options but by a new mandatory parameter
 - Added new mode 'relight' that does not alter the world but simply relights all chunks
 - Made trace mode considerably more efficient
+
+### v0.5.1
+- Fixed packaging to include data and submodule files in new pymclevel
+- Made trace mode considerably more efficient (for real this time)

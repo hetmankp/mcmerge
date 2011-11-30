@@ -9,7 +9,7 @@ logging.basicConfig(format="... %(message)s")
 pymclevel_log = logging.getLogger('pymclevel')
 pymclevel_log.setLevel(logging.CRITICAL)
 
-version = '0.5.0'
+version = '0.5.1'
 
 class Contour(object):
     """
