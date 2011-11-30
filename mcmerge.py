@@ -34,14 +34,14 @@ class Contour(object):
                 if z != 0 or x != 0:
                     yield (coord[0] + x, coord[1] + z), (x, z)
         
-    def __trace_edge(self, level, chunk, all=None):
+    def __trace_edge(self, chunk, all_chunks):
         """
         Checks surrounding chunks and records a set of
         vectors for the direction of contour faces.
         """
         
         for curr, (x, z) in self.__surrounding(chunk):
-            if curr not in (level.allChunks if all is None else all):
+            if curr not in all_chunks:
                 self.edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
                 self.edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
     
@@ -65,9 +65,9 @@ class Contour(object):
         
         self.edges = {}
         level = mclevel.fromFile(world_dir)
-        all_chunks = list(level.allChunks)
+        all_chunks = set(level.allChunks)
         for chunk in all_chunks:
-            self.__trace_edge(level, chunk, all=set(all_chunks))
+            self.__trace_edge(chunk, all_chunks)
     
     def write(self, file_name):
         """ Write to file using """
