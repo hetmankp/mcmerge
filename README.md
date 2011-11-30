@@ -84,7 +84,7 @@ Once you have the required bits installed, you can download this tool then fire 
 
 You can repeat steps 4 - 6 as many times as you need as the tool will keep track of which border areas haven't yet been merged because they haven't had new areas generated next to them.
 
-NOTE: For Windows users using the packaged binary, replace 'python mcmerge.py' with 'mcmerge' in the above commands.
+NOTE: For Windows users using the packaged binary, replace 'python mcmerge.py' with 'mcmerge.exe' in the above commands.
 
 
 Configuration
