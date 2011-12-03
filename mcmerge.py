@@ -815,7 +815,6 @@ if __name__ == '__main__':
     # Shift the map height
     elif mode is Modes.shift:
         print "Loading world..."
-        print
         
         try:
             shift = Shifter(world_dir)
@@ -861,11 +860,12 @@ if __name__ == '__main__':
             contour.read(contour_data_file)
         except EnvironmentError, e:
             if e.errno == errno.ENOENT:
-                print "No contour data to merge from (use --contour to generate)"
-                sys.exit(1)
+                if os.path.exists(world_dir):
+                    error("no contour data to merge with (use trace mode to generate)")
+                else:
+                    error('could not read world data: File not found: %s' % world_dir)
             else:
-                print "Couldn't read contour data: %s" % e
-                sys.exit(1)
+                error('could not read contour data: %s' % e)
         
         print "Loading world..."
         print
@@ -914,7 +914,6 @@ if __name__ == '__main__':
     # Relight all the chunks on the map
     elif mode is Modes.relight:
         print "Loading world..."
-        print
         
         try:
             relight = Relighter(world_dir)
