@@ -141,3 +141,6 @@ Revision history
 ### v0.5.1
 - Fixed packaging to include data and submodule files in new pymclevel
 - Made trace mode considerably more efficient (for real this time)
+
+### v0.5.2
+- Fixed rare crash when placing river water

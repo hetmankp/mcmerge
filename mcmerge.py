@@ -9,7 +9,7 @@ logging.basicConfig(format="... %(message)s")
 pymclevel_log = logging.getLogger('pymclevel')
 pymclevel_log.setLevel(logging.CRITICAL)
 
-version = '0.5.1'
+version = '0.5.2'
 
 class Contour(object):
     """
@@ -214,6 +214,7 @@ class ChunkShaper(object):
         # Erode blocks based on the height map
         mx, mz = self.height.shape
         removed = numpy.zeros((mx, mz), bool)
+        materials = self.__chunk.world.materials
         for x in xrange(0, mx):
             for z in xrange(0, mz):
                 target = min(smoothed[x, z], self.height[x, z])
@@ -281,8 +282,6 @@ class ChunkShaper(object):
                             removed[x, z] = True
                             
                             if y - 1 >= 0:
-                                materials = self.__chunk.world.materials
-                                
                                 # River bed
                                 if y - 1 <= self.sea_level:
                                     replace((x, z, y - 1), -2, None, materials.Sand)    # River bed
@@ -791,7 +790,11 @@ if __name__ == '__main__':
         elif opt == '--no-relight':
             Shifter.relight = False
             Merger.relight = False
-    
+
+    def error(msg):
+        print "Error: %s" % msg
+        sys.exit(1)
+        
     # Trace contour of the old world
     if mode is Modes.trace:
         print "Finding world contour..."
