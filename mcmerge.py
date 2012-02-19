@@ -11,6 +11,12 @@ pymclevel_log.setLevel(logging.CRITICAL)
 
 version = '0.5.3'
 
+class ContourLoadError(Exception):
+    pass
+
+MethodsFields = collections.namedtuple('MethodsFields', ('bit', 'symbol'))
+EdgeData = collections.namedtuple('EdgeData', ('method', 'direction'))
+
 class Contour(object):
     """
     Class for finding and recording the contour of the world. The contour
@@ -18,12 +24,18 @@ class Contour(object):
     vectors.
     """
     
-    zenc = {-1: 'S', 0: '', 1: 'N'}
-    xenc = {-1: 'E', 0: '', 1: 'W'}
+    zenc = {-1: 'N', 0: '', 1: 'S'}
+    xenc = {-1: 'W', 0: '', 1: 'E'}
     
-    sdec = {'S': numpy.array([0, -1]), 'N': numpy.array([0, 1]), 'E': numpy.array([-1, 0]), 'W': numpy.array([1, 0])}
+    sdec = {'N': numpy.array([0, -1]), 'S': numpy.array([0, 1]), 'W': numpy.array([-1, 0]), 'E': numpy.array([1, 0])}
+    
+    methods = {
+        'river': MethodsFields(1, 'R'),
+        'average': MethodsFields(2, 'A'),
+    }
     
     def __init__(self):
+        self.shift = {}
         self.edges = {}
     
     def __surrounding(self, coord):
@@ -34,7 +46,7 @@ class Contour(object):
                 if z != 0 or x != 0:
                     yield (coord[0] + x, coord[1] + z), (x, z)
         
-    def __trace_edge(self, chunk, all_chunks):
+    def __trace_edge(self, chunk, method, all_chunks):
         """
         Checks surrounding chunks and records a set of
         vectors for the direction of contour faces.
@@ -42,20 +54,9 @@ class Contour(object):
         
         for curr, (x, z) in self.__surrounding(chunk):
             if curr not in all_chunks:
-                self.edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
-                self.edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
-    
-    def __getitem__(self, coords):
-        """ Interface return a numpy.array edge representation """
-        
-        x, z = coords
-        return [numpy.array(v) for v in self.edges[(x, z)]]
-    
-    def __iter__(self):
-        """ Iterate over edges returning (coordinate, list of numpy array edges) tuples """
-        
-        for c, es in self.edges.iteritems():
-            yield c, [numpy.array(e) for e in es]
+                new = lambda: EdgeData(method, set())
+                self.edges.setdefault(chunk, new()).direction.add((x, z))     # Edge for our existing chunk
+                self.edges.setdefault(curr,  new()).direction.add((-x, -z))   # Counter edge for the missing chunk
     
     def trace_world(self, world_dir):
         """
@@ -67,27 +68,80 @@ class Contour(object):
         level = mclevel.fromFile(world_dir)
         all_chunks = set(level.allChunks)
         for chunk in all_chunks:
-            self.__trace_edge(chunk, all_chunks)
+            self.__trace_edge(chunk, self.methods['river'].bit, all_chunks)
     
     def write(self, file_name):
         """ Write to file using """
     
         with open(file_name, 'w') as f:
-            for coords, edge in self.edges.iteritems():
-                enc = ' '.join((''.join((self.zenc[v1], self.xenc[v0])) for v0, v1 in edge))
-                f.write('%6d %6d %s\n' % (coords[0], coords[1], enc))
+            # Write header
+            f.write('VERSION 2\n')
+            
+            # Collect all data
+            blocks = set(self.edges.keys()) | set(self.shift.keys())
+            for coords in blocks:
+                # Assemble the block shifting data
+                try:
+                    shift = self.shift[coords]
+                    shift_data = '%d' % shift
+                except LookupError:
+                    shift_data = '-'
+                    
+                # Assemble the edge merging data
+                try:
+                    edge = self.edges[coords]
+                    method_data = ''.join(m.symbol for m in self.methods.itervalues() if m.bit & edge.method)
+                    direction = ' '.join((''.join((self.zenc[v1], self.xenc[v0])) for v0, v1 in edge.direction))
+                    edge_data = ('%%-%ds %%s' % len(self.methods)) % (method_data, direction)
+                except LookupError:
+                    edge_data = '-'
+                
+                # Write complete set of data to output
+                f.write('%6d %6d %s %s\n' % (coords[0], coords[1], shift_data, edge_data))
     
     def read(self, file_name, update=False):
         """ Read from file. If update, don't clear existing data. """
         
         with open(file_name, 'r') as f:
             if not update:
+                self.shift = {}
                 self.edges = {}
+                
+            try:
+                line = f.next()
+            except StopIteration:
+                return
             
-            for line in f:
-                arr = line.strip().split(None, 2)
-                dec = set(tuple(sum(self.sdec[c] for c in s)) for s in arr[2].split())
-                self.edges[(int(arr[0]), int(arr[1]))] = dec
+            if line.startswith('VERSION'):
+                version = int(line[8:])
+                lines = f
+            else:
+                version = 1
+                lines = itertools.chain([line], f)
+                
+            try:
+                getattr(self, '_Contour__read_v%d' % version)(lines)
+            except AttributeError:
+                raise ContourLoadError("unknown version format '%s'")
+                
+    def __read_v1(self, lines):
+        for line in lines:
+            arr = line.strip().split(None, 2)
+            direction = set(tuple(sum(-self.sdec[c] for c in s)) for s in arr[2].split())
+            self.edges[(int(arr[0]), int(arr[1]))] = EdgeData(self.methods['river'].bit, direction)
+            
+    def __read_v2(self, lines):
+        for line in lines:
+            arr = line.strip().split(None, 4)
+            coords = (int(arr[0]), int(arr[1]))
+            
+            if arr[2] != '-':
+                self.shift[coords] = int(arr[2])
+                
+            if arr[3] != '-':
+                method = sum(sum(m.bit for m in self.methods.itervalues() if m.symbol == s) for s in arr[3])
+                direction = set(tuple(sum(self.sdec[c] for c in s)) for s in arr[4].split())
+                self.edges[coords] = EdgeData(method, direction)
 
 class ChunkShaper(object):
     """
@@ -108,6 +162,7 @@ class ChunkShaper(object):
         self.__blocks = blocks
         self.__chunk = chunk
         self.__edge = edge
+        self.__edge_direction = [numpy.array(v) for v in self.__edge.direction]
         self.__empty = chunk.world.materials.Air
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
@@ -134,8 +189,8 @@ class ChunkShaper(object):
         """ Carve out unsmoothed river bed """
         
         mx, mz = height.shape
-        mask1 = carve.make_mask((mx, mz), self.__edge, self.river_width - 1, self.__seeder)
-        mask2 = carve.make_mask((mx, mz), self.__edge, self.river_width,     self.__seeder)
+        mask1 = carve.make_mask((mx, mz), self.__edge_direction, self.river_width - 1, self.__seeder)
+        mask2 = carve.make_mask((mx, mz), self.__edge_direction, self.river_width,     self.__seeder)
         res = numpy.empty((mx, mz), height.dtype)
         for x in xrange(0, mx):
             for z in xrange(0, mz):
@@ -152,7 +207,7 @@ class ChunkShaper(object):
         """ Carve out area which will slope down to river """
         
         mx, mz = height.shape
-        mask = carve.make_mask((mx, mz), self.__edge, self.valley_width, None)
+        mask = carve.make_mask((mx, mz), self.__edge_direction, self.valley_width, None)
         res = numpy.empty((mx, mz), height.dtype)
         for x in xrange(0, mx):
             for z in xrange(0, mz):
@@ -321,6 +376,10 @@ class ChunkShaper(object):
         self.__chunk.chunkChanged() # Update internal chunk state
 
 class Shifter(object):
+    """
+    Shifts areas of the map up or down.
+    """
+    
     relight = True
     
     def __init__(self, world_dir):
@@ -413,6 +472,11 @@ class Shifter(object):
         self.__level.saveInPlace()
 
 class Relighter(object):
+    """
+    Relight chunks so we don't get dark patches
+    after making alterations to the map.
+    """
+    
     def __init__(self, world_dir):
         self.__level = mclevel.fromFile(world_dir)
         
@@ -523,12 +587,11 @@ class Merger(object):
     
     BlockIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
-    def __init__(self, world_dir, contour, filt_name, filt_factor):
+    def __init__(self, world_dir, filt_name, filt_factor):
         self.filt_name = filt_name
         self.filt_factor = filt_factor
         
         self.__level = mclevel.fromFile(world_dir)
-        self.__contour = contour
         self.__blocks = self.BlockIDs(self.__block_material(self.terrain),
                                       self.__block_material(self.supported),
                                       self.__block_material(self.immutable),
@@ -573,7 +636,7 @@ class Merger(object):
         if coords not in self.__level.allChunks:
             return False
         
-        for x, z in edge:
+        for x, z in edge.direction:
             if (coords[0] + x, coords[1] + z) not in self.__level.allChunks:
                 return False
         return True
@@ -581,7 +644,7 @@ class Merger(object):
     def erode(self, contour):
         # Go through all the chunks that require smoothing
         reshaped = []
-        for n, (coord, edge) in enumerate(contour.edges.iteritems()):
+        for n, (coord, edge) in enumerate(contour.iteritems()):
             # Progress logging
             if self.log_function is not None:
                 if n % self.log_interval == 0:
@@ -801,7 +864,7 @@ if __name__ == '__main__':
         contour = Contour()
         try:
             contour.trace_world(world_dir)
-        except EnvironmentError, e:
+        except (EnvironmentError, ContourLoadError), e:
             error('could not read world contour: %s' % e)
         
         print "Recording world contour..."
@@ -858,7 +921,7 @@ if __name__ == '__main__':
         contour = Contour()
         try:
             contour.read(contour_data_file)
-        except EnvironmentError, e:
+        except (EnvironmentError, ContourLoadError), e:
             if e.errno == errno.ENOENT:
                 if os.path.exists(world_dir):
                     error("no contour data to merge with (use trace mode to generate)")
@@ -871,7 +934,7 @@ if __name__ == '__main__':
         print
         
         try:
-            merge = Merger(world_dir, contour, filt_name, filt_factor)
+            merge = Merger(world_dir, filt_name, filt_factor)
         except EnvironmentError, e:
             error('could not read world data: %s' % e)
         
@@ -884,7 +947,7 @@ if __name__ == '__main__':
             print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
         merge.log_interval = 10
         merge.log_function = progress
-        reshaped = merge.erode(contour)
+        reshaped = merge.erode(contour.edges)
         
         print
         print "Relighting and saving:"
