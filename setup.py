@@ -33,10 +33,11 @@ setup(
         bundle_files = 1,
         compressed = True,
         unbuffered = True,
+        includes = ['pkg_resources'],
         excludes = ['Tkconstants', 'Tkinter', 'tcl'],
         dll_excludes = ['w9xpopen.exe', 'mswsock.dll', 'powrprof.dll'],
     )},
-    data_files=find_data_files('pymclevel', '', ['*.yaml', 'schematics/*', 'schematics/**/*']),
+    data_files=find_data_files('pymclevel', 'pymclevel', ['*.yaml', 'schematics/*', 'schematics/**/*']),
     author='Przemyslaw Wrzos',
     license='MIT License',
 )
