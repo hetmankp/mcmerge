@@ -13,6 +13,8 @@ filters = {
     'gauss':    'gsmooth',
 }
 
+padding = 1
+
 def ftrim(a, cut):
     """
     Takes a 2D DFT spectral result and removes frequencies
@@ -51,9 +53,9 @@ def fftrim(a, drop):
     
     return b
 
-def pad(a, extra=1):
+def pad(a):
     """
-    Pad a 2D array with an extra number of equally sized
+    Pad a 2D array with a padding number of equally sized
     arrays on every side. Extends the values at the edges
     of the original array in all directions.
     """
@@ -61,7 +63,7 @@ def pad(a, extra=1):
     def samp(c, cm):
         """ Take a sample from the edge of the input """
         
-        n = c - cm*extra
+        n = c - cm*padding
         if n < 0:
             return 0
         elif n >= cm:
@@ -70,7 +72,7 @@ def pad(a, extra=1):
             return n
         
     mx, my = a.shape
-    factor = extra*2+1
+    factor = padding*2+1
     
     b = numpy.empty((mx*factor, my*factor), a.dtype)
     
@@ -97,21 +99,18 @@ def crop(a, extra=1):
         
     return b
 
-def smooth(a, cut):
+def smooth(a, cut, padder=pad):
     """ Smooth by cutting out high frequencies """
     
-    padding = 1         # Padding on either side
     cut *= padding*3    # Due to padding
-    return crop(numpy.real(numpy.fft.ifft2(ftrim(numpy.fft.fft2(pad(a, padding)), cut))), padding)
+    return crop(numpy.real(numpy.fft.ifft2(ftrim(numpy.fft.fft2(padder(a)), cut))), padding)
 
-def fsmooth(a, drop):
+def fsmooth(a, drop, padder=pad):
     """ Smooth by cutting out high frequencies, drop function defines gradual drop-off """
     
-    padding = 1         # Padding on either side
-    cut *= padding*3    # Due to padding
-    return crop(numpy.real(numpy.fft.ifft2(fftrim(numpy.fft.fft2(pad(a, padding)), drop))), padding)
+    return crop(numpy.real(numpy.fft.ifft2(fftrim(numpy.fft.fft2(padder(a)), drop))), padding)
 
-def gsmooth(a, sigma):
+def gsmooth(a, sigma, padder=pad):
     """ Smooth with gaussian filter """
     
     return scipy.ndimage.filters.gaussian_filter(a, sigma, mode='nearest')

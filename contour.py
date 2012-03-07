@@ -1,6 +1,7 @@
 import itertools, collections
 import numpy
 from pymclevel import mclevel
+import filter
 
 class ContourLoadError(Exception):
     pass
@@ -26,8 +27,9 @@ class Contour(object):
     }
     
     def __init__(self):
-        self.shift = {}
-        self.edges = {}
+        self.shift = {}         # Each coordinate maps to an integer shift distance
+        self.edges = {}         # Each coordinate points to an EdgeData instance
+        self.heights = {}       # Each coordinate stores a chunk height map array
     
     def __surrounding(self, coord):
         """Generate coordinates of all surrounding chunks"""
@@ -48,6 +50,14 @@ class Contour(object):
                 new = lambda: EdgeData(method, set())
                 self.edges.setdefault(chunk, new()).direction.add((x, z))     # Edge for our existing chunk
                 self.edges.setdefault(curr,  new()).direction.add((-x, -z))   # Counter edge for the missing chunk
+                
+    def height_map(self, level, block_roles):
+        """
+        Returns a height map object that integrates with and
+        modifies the height map data.
+        """
+        
+        return HeightMap(self.heights, self.edges, level, block_roles)
     
     def trace_world(self, world_dir):
         """
@@ -134,3 +144,64 @@ class Contour(object):
                 direction = set(tuple(sum(self.sdec[c] for c in s)) for s in arr[4].split())
                 self.edges[coords] = EdgeData(method, direction)
 
+class HeightMap(object):
+    """
+    This object is used to provide height map arrays at requested
+    coordinates. Requested height maps are cached and the ones that
+    are no longer required for merging may be explicitly pruned.
+    """
+    
+    def __init__(self, heights, edges, level, block_roles):
+        self.__heights = heights
+        self.__edges = edges
+        self.__level = level
+        self.__block_roles = block_roles
+        
+    def __getitem__(self, key):
+        try:
+            return self.__heights[key]
+        except KeyError:
+            chunk = self.__level.getChunk(*key)
+            height = self.find_heights(chunk.Blocks, self.__block_roles)
+            self.__heights[key] = height
+            return height
+        
+    def prune(self):
+        """
+        Removes height maps no longer needing caching given the
+        remaining set of contour edges. This prunes the heights
+        dictionary used to initialise this object.
+        """
+        
+        # This is not terribly efficient but we'll let the
+        # profiler decide later
+        
+        range = (-filter.padding, filter.padding+1)
+        
+        def still_required(coords):
+            for z in xrange(*range):
+                for x in xrange(*range):
+                    if (coords[0] + x, coords[1] + z) in self.__edges:
+                        return False
+            return True
+        
+        for coord in self.__heights.keys():
+            if not still_required(coord):
+                del self.__heights[coord]
+        
+    @staticmethod
+    def find_heights(block_ids, block_roles):
+        """ Create heigh-map based on highest solid object """
+        
+        mx, mz, my = block_ids.shape
+        height = numpy.empty((mx, mz), int)
+        for x in xrange(0, mx):
+            for z in xrange(0, mz):
+                for y in xrange(my - 1, -1, -1):
+                    if block_ids[x, z, y] in block_roles.terrain:
+                        height[x, z] = y
+                        break
+                else:
+                    height[x, z] = -1
+        
+        return height

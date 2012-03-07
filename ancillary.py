@@ -1,3 +1,5 @@
+import itertools
+
 class Enum(type):
     """ Very simple enumeration"""
     
@@ -30,3 +32,30 @@ class Enum(type):
         dct['__iter__'] = lambda self: gen()
         
         return type.__new__(mcs, name, bases, dct)
+
+
+def extend(iterable, n=None):
+    """
+    Extends an iterable by repeating the last value up to
+    n times (or indefinitely if not given.
+    """
+    
+    itr = iter(iterable)
+    while True:
+        try:
+            val = itr.next()
+            yield val
+        except StopIteration:
+            break
+    
+    try:
+        if n is None:
+            tail = itertools.repeat(val)
+        else:
+            tail = itertools.repeat(val, n)
+    except NameError:
+        raise StopIteration
+    
+    for x in tail:
+        yield x
+        
