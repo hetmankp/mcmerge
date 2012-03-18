@@ -24,6 +24,7 @@ class Contour(object):
     methods = {
         'river': MethodsFields(1, 'R'),
         'average': MethodsFields(2, 'A'),
+        'ocean': MethodsFields(4, 'O'),
     }
     
     def __init__(self):

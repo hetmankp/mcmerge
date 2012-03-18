@@ -34,7 +34,7 @@ class ChunkShaper(object):
         self.__height_map = height_map
         self.__edge = contour.edges[self.__chunk.chunkPosition]
         self.__edge_direction = [numpy.array(v) for v in self.__edge.direction]
-        self.__empty = chunk.world.materials.Air
+        self.__ocean = False
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
         self.__seeder = ChunkSeed(chunk.world.RandomSeed, chunk.chunkPosition)
@@ -49,6 +49,14 @@ class ChunkShaper(object):
             self.__height_invalid = False
             
         return self.__height
+    
+    def __empty_block(self, height=0):
+        """ Returns block corresponding to emptiness """
+        
+        if self.__ocean and height <= self.sea_level:
+            return self.__chunk.world.materials.Water
+        else:
+            return self.__chunk.world.materials.Air
     
     def with_river(self, height):
         """ Carve out unsmoothed river bed """
@@ -83,6 +91,8 @@ class ChunkShaper(object):
     def reshape(self, filt_name, filt_factor):
         """ Reshape the original chunk to the smoothed out result """
         
+        self.__ocean = bool(self.__edge.method & Contour.methods['ocean'].bit)
+            
         changed = False
         for method in ['average', 'river']:   # This defines the order of processing
             if self.__edge.method & Contour.methods[method].bit:
@@ -195,7 +205,7 @@ class ChunkShaper(object):
                     if target > initial and top[0] in self.__block_roles.tree_trunks:
                         # Replace with sapling
                         if not self.__place_sapling((x, z, target + 1), top):
-                            self.__place((x, z, target + 1), self.__empty)
+                            self.__place((x, z, target + 1), self.__empty_block(target + 1))
                     
                     # Place supported blocks
                     elif above is not None:
@@ -216,19 +226,31 @@ class ChunkShaper(object):
                 for n, y in enumerate(xrange(target + 1, self.__local_ids.shape[2])):
                     curr, curr_data = self.__get_block((x, z, y))
                     below = self.__local_ids[x, z, y - 1]
+                    empty = self.__empty_block(y)
                     
-                    # If this is a supported block, leave it alone
+                    # Found a supported block
                     if n == 0 and curr in self.__block_roles.supported and \
                        (below in self.__block_roles.terrain or
                         below in self.__block_roles.tree_trunks or
                         below in self.__block_roles.tree_leaves):
-                        continue
+                           
+                        # Disolve block if underwater
+                        empty = self.__empty_block(y)
+                        
+                        if  empty.ID in self.__block_roles.solvent \
+                        and curr in self.__block_roles.disolve:
+                            replace = self.__block_roles.disolve[curr]
+                            self.__place((x, z, y), empty if replace is None else replace)
+                        
+                        # Leave block alone
+                        else:
+                            continue
                     
                     # Eliminate hovering trees but retain the rest
                     elif n > 0 and curr in self.__block_roles.tree_trunks:
                         if below not in self.__block_roles.tree_trunks:
                             # Remove tree trunk
-                            self.__place((x, z, y), self.__empty)
+                            self.__place((x, z, y), self.__empty_block(y))
                             
                             # Replace with sapling
                             self.__place_sapling((x, z, target + 1), (curr, curr_data))
@@ -241,31 +263,57 @@ class ChunkShaper(object):
                         continue
                     
                     # Otherwise remove the block
-                    elif curr != self.__empty.ID:
+                    elif curr != self.__empty_block(y).ID:
                         top = []
                         
                         # Remove if removable
                         if curr not in self.__block_roles.immutable:
+                            # For efficiency
+                            if n == 0:
+                                empty = self.__empty_block(y)
+                                
                             # Remember what blocks were previously found at the top
                             if n == 0:
                                 by = self.height[x, z]
                                 top = [self.__get_block((x, z, yi))
                                         for yi in xrange(by, by - self.shift_depth, -1)
                                         if yi >= 0]
+                                
+                                # Disolve top if found to be underwater seabed
+                                if empty.ID in self.__block_roles.solvent:
+                                    if len(top) > 1 and top[1][0] in self.__block_roles.disolve:
+                                        replace = self.__block_roles.disolve[top[1][0]]
+                                        if replace is not None:
+                                            top[1] = replace
                             
                             # Decide which block to replace current block with
                             if n == 0:
+                                new = empty
+                                
                                 # Move down supported blocks to new height
                                 by = self.height[x, z] + 1
                                 if by < self.__local_ids.shape[2]:
-                                    if self.__local_ids[x, z, by] in self.__block_roles.supported:
-                                        new = self.__get_block((x, z, by))
-                                    else:
-                                        new = self.__empty
+                                    supported_id = self.__local_ids[x, z, by]
+                                    if supported_id in self.__block_roles.supported:
+                                        # Find blocks to disolve
+                                        if  empty.ID in self.__block_roles.solvent \
+                                        and supported_id in self.__block_roles.disolve:
+                                            replace = self.__block_roles.disolve[supported_id]
+                                            new = empty if replace is None else replace
+                                            
+                                        # Supported block
+                                        else:
+                                            # Special case, removing blocks to make shorelines look normal
+                                            if y == self.sea_level:
+                                                new = empty
+                                            
+                                            # Supported block retained
+                                            else:
+                                                new = self.__get_block((x, z, by))
                             elif y - 1 <= self.sea_level and curr in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
-                                new = self.__empty
+                                new = self.__empty_block(y)
                             
                             # Replace current block
                             if new is not None:
@@ -528,10 +576,8 @@ class Merger(object):
         'RedstoneOreGlowing', 'Sand', 'Sandstone', 'SandstoneSlab', 'Snow', 'SoulSand', 'Stone',
         'StoneBrickSlab', 'StoneBrickStairs', 'StoneBricks', 'StoneSlab', 'StoneStairs', 'WoodPlanks',
         'WoodenSlab', 'WoodenStairs'
-        
         # Indev
         'InfiniteLava',
-        
         # Pocket
         'Lavaactive',
     )
@@ -553,14 +599,32 @@ class Merger(object):
         'Bedrock',
     )
     
+    # These blocks are able to disolve other blocks
+    solvent = (
+        # Alpha
+        'Water', 'WaterActive',
+        # Classic
+        'InfiniteWater',
+        # Pocket
+        'Wateractive',
+    )
+    
+    # These blocks will be replaced as specified if underwater (None means completely remove)
+    disolve = {
+        'Grass': 'Dirt',
+        'Lava': 'Obsidian',
+        'LavaActive': 'Cobblestone',
+        'Mycelium': 'Dirt',
+        'Snow': 'Dirt',
+        'SnowLayer': None,
+    }
+    
     # Ignored when reshaping land
     water = (
         # Alpha
-        'Ice', 'WaterActive', 'Water',
-        
+        'Ice', 'Water', 'WaterActive',
         # Classic
         'InfiniteWater',
-        
         # Pocket
         'Wateractive',
     )
@@ -569,7 +633,6 @@ class Merger(object):
     tree_trunks = (
         # Alpha
         'BirchWood', 'Cactus', 'HugeBrownMushroom', 'HugeRedMushroom', 'Ironwood', 'SugarCane', 'Vines', 'Wood',
-        
         # Pocket
         'PineWood',
     )
@@ -585,7 +648,7 @@ class Merger(object):
         'BirchWood': 'BirchSapling', 'Ironwood': 'SpruceSapling', 'Wood': 'Sapling',
     }
     
-    BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
+    BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'solvent', 'disolve', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
     def __init__(self, world_dir, filt_name, filt_factor):
         self.filt_name = filt_name
@@ -596,6 +659,8 @@ class Merger(object):
             self.__block_material(self.terrain),
             self.__block_material(self.supported),
             self.__block_material(self.immutable),
+            self.__block_material(self.solvent),
+            self.__block_material(self.disolve, ('ID', ('ID', 'blockData'))),
             self.__block_material(self.water),
             self.__block_material(self.tree_trunks),
             self.__block_material(self.tree_leaves),
@@ -606,7 +671,10 @@ class Merger(object):
         self.log_function = None
     
     def __block_material(self, names, attrs='ID'):
-        """ Returns block attributes for those names that are present in the loaded level materials """
+        """
+        Returns block attributes for those names that are present in the loaded level materials.
+        Attemps to retain the original structure of the input set.
+        """
         
         def cycle(it):
             if it is None or isinstance(it, basestring):
@@ -618,19 +686,25 @@ class Merger(object):
             if attrs is None:
                 return lambda obj: obj
             elif isinstance(attrs, basestring):
-                return lambda obj: getattr(obj, attrs)
+                return lambda obj: None if obj is None else getattr(obj, attrs)
             else:
-                return lambda obj: tuple(obj if attr is None else getattr(obj, attr) for attr in attrs)
+                return lambda obj: None if obj is None else tuple(None if attr is None else getattr(obj, attr) for attr in attrs)
+            
+        def hasattr_or_none(obj, name):
+            return True if name is None else hasattr(obj, name)
+        
+        def getattr_or_none(obj, name):
+            return None if name is None else getattr(obj, name)
         
         materials = self.__level.materials
-        if hasattr(names, 'iteritems'):
+        if hasattr_or_none(names, 'iteritems'):
             atrs = [getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
-            return dict([atrs[i](getattr(materials, n)) for i, n in enumerate(ns)]
+            return dict([atrs[i](getattr_or_none(materials, n)) for i, n in enumerate(ns)]
                         for ns in names.iteritems()
-                        if all(hasattr(materials, n) for n in ns))
+                        if all(hasattr_or_none(materials, n) for n in ns))
         else:
             atr = getter(attrs)
-            return set(atr(getattr(materials, n)) for n in names if hasattr(materials, n))
+            return set(atr(getattr_or_none(materials, n)) for n in names if hasattr_or_none(materials, n))
     
     def __have_surrounding(self, coords, radius):
         """ Check if all surrounding chunks are present """
@@ -854,7 +928,10 @@ if __name__ == '__main__':
         elif opt == '--narrow-factor':
             carve.narrowing_factor = get_int(arg, 'narrowing factor')
         elif opt == '--cover-depth':
-            ChunkShaper.shift_depth = get_int(arg, 'cover depth')
+            cover_depth = get_int(arg, 'cover depth')
+            if cover_depth < 0:
+                cover_depth = 0
+            ChunkShaper.shift_depth = cover_depth
         elif opt == '--no-relight':
             Shifter.relight = False
             Merger.relight = False
