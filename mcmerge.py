@@ -639,7 +639,8 @@ class Merger(object):
     
     # Leaves and their decayed versions
     tree_leaves = (
-        'BirchLeaves', 'BirchLeavesDecaying', 'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying'
+        'BirchLeaves', 'BirchLeavesDecaying', 'JungleLeaves', 'JungleLeavesDecaying',
+        'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying'
     )
     
     # Tree trunk replace
