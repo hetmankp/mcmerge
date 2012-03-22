@@ -310,7 +310,7 @@ class ChunkShaper(object):
                                             # Supported block retained
                                             else:
                                                 new = self.__get_block((x, z, by))
-                            elif y - 1 <= self.sea_level and curr in self.__block_roles.water:
+                            elif y <= self.sea_level and curr in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
                                 new = self.__empty_block(y)
