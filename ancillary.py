@@ -9,7 +9,13 @@ class Enum(type):
             self.__name = name
             
         def __cmp__(self, other):
-            return cmp(self, other)
+            return cmp(self.val, other.val)
+        
+        def __eq__(self, other):
+            if isinstance(other, basestring):
+                return self.__name == other
+            else:
+                return object.__eq__(self, other)
             
         def __str__(self):
             return self.__name

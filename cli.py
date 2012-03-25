@@ -1,0 +1,397 @@
+import sys, os.path, getopt
+import carve, filter, various, merge
+
+# Static constants
+version = '0.5.3'
+
+# Define option defaults
+contour_file_name = 'contour.dat'
+filt_factor = 1.7
+filt_name = 'smooth'
+shift_down = 1
+world_dir = None
+
+# Useful values
+program_name = os.path.basename(sys.argv[0])
+
+# Classes to manage commands
+class CommandParsingError(Exception):
+    pass
+
+class Command(object):
+    name = None
+    
+    short_opts = ""
+    long_opts = []
+    
+    def usage(self):
+        """ Display usage of command """
+        
+        raise NotImplementedError
+    
+    def parse(self, opts, args):
+        """ Propagate the options and arguments given """
+        
+        raise NotImplementedError
+
+# External interface
+command_list = []
+command_dict = {}
+
+def complete(name):
+    """
+    Find full command name corresponding to the given abbreviation.
+    May raise KeyError if abbreviation is ambiguous.
+    """
+    
+    found = None
+    for n in command_list:
+        if n is None:
+            continue
+        
+        if n.startswith(name.lower()):
+            if found is None:
+                found = n
+            else:
+                KeyError("ambiguous command name '%s', please provide full name" % args[0])
+                
+    return found
+    
+def parse(argv):
+    """
+    Parse command line options. Returns the name of the command
+    and any additional data returned by the command parser.
+    
+    May raise CommandParsingError if there are problems.
+    """
+    
+    # Find the command
+    if len(argv) < 1:
+        full = None
+        cmd = command_dict[None]
+    else:
+        try:
+            full = complete(argv[0])
+        except KeyError, e:
+            raise CommandParsingError(str(e))
+        
+        if full is not None and full in command_dict:
+            cmd = command_dict[full]
+            argv = argv[1:]
+        else:
+            cmd = command_dict[None]
+            try:
+                return None, cmd.parse(*getopt.gnu_getopt(argv, cmd.short_opts, cmd.long_opts))
+            except getopt.GetoptError, e:
+                raise CommandParsingError("unrecognised command '%s'" % argv[0])
+            
+    # Process arguments
+    try:
+        return full, cmd.parse(*getopt.gnu_getopt(argv, cmd.short_opts, cmd.long_opts))
+    except getopt.GetoptError, e:
+        raise CommandParsingError(str(e))
+
+# Various command helpers
+def error(msg):
+    print "For usage type: %s help" % os.path.basename(sys.argv[0])
+    print
+    print "Error: %s" % msg
+    sys.exit(1)
+    
+def _do_help(cmd, opts):
+    if any(opt in ('-h', '--help') for opt, _ in opts):
+        cmd.usage()
+        sys.exit(0)
+        
+def _get_world_dir(args):
+    if len(args) < 1:
+        error("must provide world directory location")
+    elif len(args) > 1:
+        error("only one world location may be specified")
+    else:
+        return args[0]
+
+def _get_int(raw, name):
+    try:
+        return int(raw)
+    except ValueError:
+        error('%s must be an integer value' % name)
+
+def _get_float(raw, name):
+    try:
+        return float(raw)
+    except ValueError:
+        error('%s must be a floating point number' % name)
+
+def _get_ints(raw, name, count):
+    try:
+        ints = tuple(int(x) for x in raw.split(','))
+        if len(ints) != count:
+            raise ValueError
+        return ints
+    except ValueError:
+        error('%s must be %d comma separated integers' % (name, count))
+
+# Define command behaviour
+def __add_command(cmd):
+    """ Add a new command to the existing list """
+    
+    command_list.append(cmd.name)
+    command_dict[cmd.name] = cmd()
+    return cmd
+
+@__add_command
+class BaseCommand(Command):
+    name = None
+    
+    short_opts = "h"
+    long_opts = ['help', 'version']
+    
+    def usage(self):
+        print "Usage: %s <cmd> [options] [arguments] ..." % program_name
+        print
+        print "Stitches together existing Minecraft map regions with newly generated areas"
+        print "by separating them with a river."
+        print
+        print "Basic use employs a multi phase process. First trace the contour outline with"
+        print "the 'trace' command, then generate new areas with Minecraft, finally merge the"
+        print "old and new with the 'merge' command. Other options are also available."
+        print
+        print "Commands:"
+        print "  help           display information about specified command"
+        print "  shift          shifts the map height up or down, for example, this is useful"
+        print "                 to match sea level heights between version b1.7 and b1.8"
+        print "  trace          generates contour data for the original world before"
+        print "                 new areas are added"
+        print "  merge          merges and smooths the old and new areas together using the"
+        print "                 data collected in the trace phase"
+        print "  relight        relights all chunks in the world without doing anything"
+        print "                 else, note that other modes do this automatically"
+        print 
+        print "Options:"
+        print "-h, --help                    displays this help"
+        print "    --version                 prints the version number"
+        
+    def parse(self, opts, args):
+        global version
+        
+        _do_help(self, opts)
+        if any(opt in ('--version',) for opt, _ in opts):
+            print "mcmerge v%s" % version
+            sys.exit(0)
+            
+@__add_command
+class HelpCommand(Command):
+    name = "help"
+    
+    short_opts = "h"
+    long_opts = ['help']
+    
+    def usage(self):
+        print "Usage: %s %s [command]" % (program_name, self.name)
+        print
+        print "Displays information about the given command, or this help if no command was"
+        print "specified."
+        print 
+        print "Options:"
+        print "-h, --help                    displays this help"
+        
+    def parse(self, opts, args):
+        _do_help(self, opts)
+        if len(args) < 1:
+            command_dict[None].usage()
+            sys.exit(0)
+            
+        try:
+            full = complete(args[0])
+        except KeyError, e:
+            error(str(e))
+            
+        if full is None:
+            error("unknown command '%s' specified" % args[0])
+        else:
+            command_dict[full].usage()
+            sys.exit(0)
+            
+        return {}
+            
+@__add_command
+class ShiftCommand(Command):
+    name = "shift"
+    
+    short_opts = "hd:u:"
+    long_opts = ['help', 'down=', 'up=', 'no-relight']
+    
+    def usage(self):
+        print "Usage: %s %s <world_dir>" % (program_name, self.name)
+        print
+        print "This command will shift the sea-level of the map. It should be performed"
+        print "before the other phases. It should only be necessary when moving between"
+        print "version b1.7 (or earlier) to verion b1.8 (or later) maps."
+        print 
+        print "Options:"
+        print "-d  --down=<val>              number of blocks to shift the map down by (may"
+        print "                              be negative), default: %d" % shift_down
+        print "-u  --up=<val>                number of blocks to shift the map up by (may"
+        print "                              be negative), default: %d" % -shift_down
+        print
+        print "Common options:"
+        print "    --no-relight              don't do relighting, this is faster but leaves"
+        print "                              dark areas"
+        
+    def parse(self, opts, args):
+        global world_dir, shift_down
+        
+        _do_help(self, opts)
+        world_dir = _get_world_dir(args)
+    
+        for opt, arg in opts:
+            if opt in ('-d', '--down'):
+                shift_down = _get_int(arg, 'shift down')
+            elif opt in ('-u', '--up'):
+                shift_down = -_get_int(arg, 'shift up')
+            elif opt == '--no-relight':
+                various.Shifter.relight = False
+            
+@__add_command
+class RelightCommand(Command):
+    name = "relight"
+    
+    short_opts = "h"
+    long_opts = ['help']
+    
+    def usage(self):
+        print "Usage: %s %s <world_dir>" % (program_name, self.name)
+        print
+        print "Relights all the chunks in the world without doing anything else."
+        print "Note that some of the other commands do this automatically."
+        
+    def parse(self, opts, args):
+        global world_dir
+        
+        _do_help(self, opts)
+        world_dir = _get_world_dir(args)
+            
+@__add_command
+class TraceCommand(Command):
+    name = "trace"
+    
+    short_opts = "hc:"
+    long_opts = ['help', 'contour=']
+    
+    def usage(self):
+        print "Usage: %s %s <world_dir>" % (program_name, self.name)
+        print
+        print "Generates a contour data file specifying the edge of the original"
+        print "world before new areas are added."
+        print 
+        print "Common options:"
+        print "-c, --contour=<file_name>     file that records the contour data in the"
+        print "                              world directory, default: %s" % contour_file_name
+        
+    def parse(self, opts, args):
+        global world_dir, contour_file_name
+        
+        _do_help(self, opts)
+        world_dir = _get_world_dir(args)
+    
+        for opt, arg in opts:
+            if opt in ('-c', '--contour'):
+                contour_file_name = arg
+
+@__add_command
+class MergeCommand(Command):
+    name = "merge"
+    
+    short_opts = "hs:f:c:d:r:v:"
+    long_opts = ['help', 'smooth=', 'filter=', 'contour=',
+                 'river-width=', 'valley-width=', 'river-height=',
+                 'valley-height=', 'river-centre-deviation=',
+                 'river-width-deviation=', 'river-centre-bend=',
+                 'river-width-bend=','sea-level=', 'narrow-factor=',
+                 'cover-depth=', 'no-relight']
+    
+    def usage(self):
+        print "Usage: %s %s <world_dir>" % (program_name, self.name)
+        print
+        print "Merges and smooths the old and new areas together according to the"
+        print "contour file. The contour file must first be generated using other"
+        print "commands."
+        print 
+        print "Options:"
+        print "-s, --smooth=<factor>         smoothing filter factor, default: %.2f" % filt_factor
+        print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
+        print "                              available: %s" % ', '.join(filter.filters.iterkeys())
+        print "    --cover-depth=<val>       depth of blocks transferred from original surface"
+        print "                              to carved out valley bottom, default: %d" % merge.ChunkShaper.shift_depth
+        print "    --sea-level=<val>         y co-ord of sea level, default: %d" % merge.ChunkShaper.sea_level
+        print
+        print "-r, --river-width=<val>       width of the river, default: %d" % (merge.ChunkShaper.river_width*2)
+        print "-v, --valley-width=<val>      width of the valley, default: %d" % (merge.ChunkShaper.valley_width*2)
+        print "    --river-height=<val>      y co-ord of river bottom, default: %d" % merge.ChunkShaper.river_height
+        print "    --valley-height=<val>     y co-ord of valley bottom, default: %d" % merge.ChunkShaper.valey_height
+        print "    --river-centre-deviation=<low>,<high>"
+        print "                              lower and upper bound on river centre"
+        print "                              deviation, default: %d,%d" % carve.river_deviation_centre
+        print "    --river-width-deviation=<low>,<high>"
+        print "                              lower and upper bound on river width"
+        print "                              deviation, devault: %d,%d" % carve.river_deviation_width
+        print "    --river-centre-bend=<dst> distance between river centre bends"
+        print "                              default: %.1f" % carve.river_frequency_centre
+        print "    --river-width-bend=<dst>  distance between river width bends"
+        print "                              default: %.1f" % carve.river_frequency_width
+        print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
+        print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
+        print
+        print "Common options:"
+        print "-c, --contour=<file_name>     file that records the contour data in the"
+        print "                              world directory, default: %s" % contour_file_name
+        print "    --no-relight              don't do relighting, this is faster but leaves"
+        print "                              dark areas"
+        
+    def parse(self, opts, args):
+        global world_dir, contour_file_name, filt_factor, filt_name
+        
+        _do_help(self, opts)
+        world_dir = _get_world_dir(args)
+    
+        for opt, arg in opts:
+            if opt in ('-s', '--smooth'):
+                filt_factor = _get_float(arg, 'smoothing filter factor')
+            elif opt in ('-f', '--filter'):
+                if arg in filter.filters:
+                    filt_name = arg
+                else:
+                    error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
+            elif opt in ('-c', '--contour'):
+                contour_file_name = arg
+            elif opt == '--sea-level':
+                merge.ChunkShaper.sea_level = _get_int(arg, 'sea level')
+            elif opt == '--cover-depth':
+                cover_depth = _get_int(arg, 'cover depth')
+                if cover_depth < 0:
+                    cover_depth = 0
+                merge.ChunkShaper.shift_depth = cover_depth
+            elif opt in ('-r', '--river-width'):
+                val = _get_int(arg, 'river width')
+                merge.ChunkShaper.river_width = val / 2 + val % 2
+            elif opt in ('-v', '--valley-width'):
+                val = _get_int(arg, 'valley width')
+                merge.ChunkShaper.valley_width = val / 2 + val % 2
+            elif opt == '--river-height':
+                merge.ChunkShaper.river_height = _get_int(arg, 'river height')
+            elif opt == '--valley-height':
+                merge.ChunkShaper.valey_height = _get_int(arg, 'valley height')
+            elif opt == '--river-centre-deviation':
+                carve.river_deviation_centre = _get_ints(arg, 'river centre deviation', 2)
+            elif opt == '--river-width-deviation':
+                carve.river_deviation_width = _get_ints(arg, 'river width deviation', 2)
+            elif opt == '--river-centre-bend':
+                carve.river_frequency_centre = _get_float(arg, 'river centre bend distance')
+            elif opt == '--river-width-bend':
+                carve.river_frequency_width = _get_float(arg, 'river width bend distance')
+            elif opt == '--narrow-factor':
+                carve.narrowing_factor = _get_int(arg, 'narrowing factor')
+            elif opt == '--no-relight':
+                Merger.relight = False
+
