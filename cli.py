@@ -98,8 +98,9 @@ def error(msg):
     print "Error: %s" % msg
     sys.exit(1)
     
-def _do_help(cmd, opts):
-    if any(opt in ('-h', '--help') for opt, _ in opts):
+def _do_help(cmd, opts, small_opt=False):
+    matching = ('-h', '--help') if small_opt else ('--help',)
+    if any(opt in matching for opt, _ in opts):
         cmd.usage()
         sys.exit(0)
         
@@ -175,7 +176,7 @@ class BaseCommand(Command):
     def parse(self, opts, args):
         global version
         
-        _do_help(self, opts)
+        _do_help(self, opts, True)
         if any(opt in ('--version',) for opt, _ in opts):
             print "mcmerge v%s" % version
             sys.exit(0)
@@ -197,7 +198,7 @@ class HelpCommand(Command):
         print "-h, --help                    displays this help"
         
     def parse(self, opts, args):
-        _do_help(self, opts)
+        _do_help(self, opts, True)
         if len(args) < 1:
             command_dict[None].usage()
             sys.exit(0)
@@ -219,7 +220,7 @@ class HelpCommand(Command):
 class ShiftCommand(Command):
     name = "shift"
     
-    short_opts = "hd:u:"
+    short_opts = "d:u:"
     long_opts = ['help', 'down=', 'up=', 'no-relight']
     
     def usage(self):
@@ -257,7 +258,7 @@ class ShiftCommand(Command):
 class RelightCommand(Command):
     name = "relight"
     
-    short_opts = "h"
+    short_opts = ""
     long_opts = ['help']
     
     def usage(self):
@@ -276,7 +277,7 @@ class RelightCommand(Command):
 class TraceCommand(Command):
     name = "trace"
     
-    short_opts = "hc:"
+    short_opts = "c:"
     long_opts = ['help', 'contour=']
     
     def usage(self):
@@ -303,7 +304,7 @@ class TraceCommand(Command):
 class MergeCommand(Command):
     name = "merge"
     
-    short_opts = "hs:f:c:d:r:v:"
+    short_opts = "s:f:c:d:r:v:"
     long_opts = ['help', 'smooth=', 'filter=', 'contour=',
                  'river-width=', 'valley-width=', 'river-height=',
                  'valley-height=', 'river-centre-deviation=',
