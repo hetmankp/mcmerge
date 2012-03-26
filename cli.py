@@ -6,9 +6,11 @@ version = '0.5.3'
 
 # Define option defaults
 contour_file_name = 'contour.dat'
+contour_reset = False
 filt_factor = 1.7
 filt_name = 'smooth'
 shift_down = 1
+shift_immediate = False
 world_dir = None
 
 # Useful values
@@ -220,28 +222,34 @@ class HelpCommand(Command):
 class ShiftCommand(Command):
     name = "shift"
     
-    short_opts = "d:u:"
-    long_opts = ['help', 'down=', 'up=', 'no-relight']
+    short_opts = "d:u:irc:"
+    long_opts = ['help', 'down=', 'up=', 'immediate', 'reset', 'contour=', 'no-relight']
     
     def usage(self):
         print "Usage: %s %s <world_dir>" % (program_name, self.name)
         print
-        print "This command will shift the sea-level of the map. It should be performed"
-        print "before the other phases. It should only be necessary when moving between"
-        print "version b1.7 (or earlier) to verion b1.8 (or later) maps."
+        print "This command specifies how to shift the sea-level of the map in the contour"
+        print "file. The actual shifting will take place when the 'merge' command is run."
+        print "This should only be necessary when moving between version b1.7 (or earlier)"
+        print "to verion b1.8 (or later) maps."
         print 
         print "Options:"
         print "-d  --down=<val>              number of blocks to shift the map down by (may"
         print "                              be negative), default: %d" % shift_down
         print "-u  --up=<val>                number of blocks to shift the map up by (may"
         print "                              be negative), default: %d" % -shift_down
+        print "-i  --immediate               perform shifting immediately rather than simply"
+        print "                              marking what should be shifted"
         print
         print "Common options:"
+        print "-r, --reset                   reset pre-existing contour file"
+        print "-c, --contour=<file_name>     contour file recording the shift data in the"
+        print "                              world directory, default: %s" % contour_file_name
         print "    --no-relight              don't do relighting, this is faster but leaves"
         print "                              dark areas"
         
     def parse(self, opts, args):
-        global world_dir, shift_down
+        global world_dir, shift_down, shift_immediate, contour_file_name, contour_reset
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
@@ -251,8 +259,15 @@ class ShiftCommand(Command):
                 shift_down = _get_int(arg, 'shift down')
             elif opt in ('-u', '--up'):
                 shift_down = -_get_int(arg, 'shift up')
+            elif opt in ('-i', '--immediate'):
+                shift_immediate = True
+            elif opt in ('-r', '--reset'):
+                contour_reset = True
+            elif opt in ('-c', '--contour'):
+                contour_file_name = arg
             elif opt == '--no-relight':
                 various.Shifter.relight = False
+                merge.Merger.relight = False
             
 @__add_command
 class RelightCommand(Command):
@@ -277,8 +292,8 @@ class RelightCommand(Command):
 class TraceCommand(Command):
     name = "trace"
     
-    short_opts = "c:"
-    long_opts = ['help', 'contour=']
+    short_opts = "rc:"
+    long_opts = ['help', 'reset', 'contour=']
     
     def usage(self):
         print "Usage: %s %s <world_dir>" % (program_name, self.name)
@@ -287,17 +302,20 @@ class TraceCommand(Command):
         print "world before new areas are added."
         print 
         print "Common options:"
+        print "-r, --reset                   reset pre-existing contour file"
         print "-c, --contour=<file_name>     file that records the contour data in the"
         print "                              world directory, default: %s" % contour_file_name
         
     def parse(self, opts, args):
-        global world_dir, contour_file_name
+        global world_dir, contour_reset, contour_file_name
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
     
         for opt, arg in opts:
-            if opt in ('-c', '--contour'):
+            if opt in ('-r', '--reset'):
+                contour_reset = True
+            elif opt in ('-c', '--contour'):
                 contour_file_name = arg
 
 @__add_command
@@ -394,5 +412,6 @@ class MergeCommand(Command):
             elif opt == '--narrow-factor':
                 carve.narrowing_factor = _get_int(arg, 'narrowing factor')
             elif opt == '--no-relight':
-                Merger.relight = False
+                various.Shifter.relight = False
+                merge.Merger.relight = False
 

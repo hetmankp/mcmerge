@@ -8,6 +8,22 @@ logging.basicConfig(format="... %(message)s")
 pymclevel_log = logging.getLogger('pymclevel')
 pymclevel_log.setLevel(logging.CRITICAL)
 
+def get_contour(reset=False):
+    """ Gets existing contour data """
+    
+    contour = Contour()
+    if reset:
+        return contour
+    
+    contour_data_file = os.path.join(cli.world_dir, cli.contour_file_name)
+    try:
+        contour.read(contour_data_file)
+    except (EnvironmentError, ContourLoadError), e:
+        if e.errno != errno.ENOENT:
+            error('could not read contour data: %s' % e)
+            
+    return contour
+
 if __name__ == '__main__':
     # Values and helpers
     class Modes(object):
@@ -30,14 +46,16 @@ if __name__ == '__main__':
         
     # Trace contour of the old world
     if mode == Modes.trace:
-        print "Finding world contour..."
-        contour = Contour()
+        print "Getting existing world contour..."
+        contour = get_contour(cli.contour_reset)
+        
+        print "Tracing world contour..."
         try:
             contour.trace_world(cli.world_dir)
         except (EnvironmentError, ContourLoadError), e:
             error('could not read world contour: %s' % e)
         
-        print "Recording world contour..."
+        print "Recording world contour data..."
         try:
             contour.write(os.path.join(cli.world_dir, cli.contour_file_name))
         except EnvironmentError, e:
@@ -47,36 +65,58 @@ if __name__ == '__main__':
     
     # Shift the map height
     elif mode == Modes.shift:
-        print "Loading world..."
-        
-        try:
-            shift = Shifter(cli.world_dir)
-        except EnvironmentError, e:
-            error('could not read world data: %s' % e)
-        
-        print "Shifting chunks:"
-        print
-        
-        total = sum(1 for _ in shift.level.allChunks)
-        width = len(str(total))
-        def progress(n):
-            print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
-        shift.log_interval = 200
-        shift.log_function = progress
-        shifted = shift.shift(-cli.shift_down)
-        
-        print
-        print "Relighting and saving:"
-        print
-        pymclevel_log.setLevel(logging.INFO)
-        try:
-            shift.commit()
-        except EnvironmentError, e:
-            error('could not save world data: %s' % e)
-        pymclevel_log.setLevel(logging.CRITICAL)
-        
-        print
-        print "Finished shifting, shifted: %d chunks" % shifted
+        if not cli.shift_immediate:
+            print "Getting existing world contour..."
+            contour = get_contour(cli.contour_reset)
+            
+            print "Loading world..."
+            try:
+                shift = Shifter(cli.world_dir)
+            except EnvironmentError, e:
+                error('could not read world data: %s' % e)
+                
+            print "Marking chunks for shifting..."
+            shift.mark(contour, -cli.shift_down)
+            
+            print "Recording world shift data..."
+            try:
+                contour.write(os.path.join(cli.world_dir, cli.contour_file_name))
+            except EnvironmentError, e:
+                error('could not write world contour data: %s' % e)
+            
+            print
+            print "World shift marking complete"
+            
+        else:
+            print "Loading world..."
+            try:
+                shift = Shifter(cli.world_dir)
+            except EnvironmentError, e:
+                error('could not read world data: %s' % e)
+            
+            print "Shifting chunks:"
+            print
+            
+            total = sum(1 for _ in shift.level.allChunks)
+            width = len(str(total))
+            def progress(n):
+                print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
+            shift.log_interval = 200
+            shift.log_function = progress
+            shifted = shift.shift_all(-cli.shift_down)
+            
+            print
+            print "Relighting and saving:"
+            print
+            pymclevel_log.setLevel(logging.INFO)
+            try:
+                shift.commit()
+            except EnvironmentError, e:
+                error('could not save world data: %s' % e)
+            pymclevel_log.setLevel(logging.CRITICAL)
+            
+            print
+            print "Finished shifting, shifted: %d chunks" % shifted
 
     # Attempt to merge new chunks with old chunks
     elif mode == Modes.merge:
@@ -100,49 +140,91 @@ if __name__ == '__main__':
             else:
                 error('could not read contour data: %s' % e)
         
-        print "Loading world..."
-        print
-        
-        try:
-            merge = Merger(cli.world_dir, cli.filt_name, cli.filt_factor)
-        except EnvironmentError, e:
-            error('could not read world data: %s' % e)
-        
-        print "Merging chunks:"
-        print
-        
-        total = len(contour.edges)
-        width = len(str(total))
-        def progress(n):
-            print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
-        merge.log_interval = 10
-        merge.log_function = progress
-        reshaped = merge.erode(contour)
-        
-        print
-        print "Relighting and saving:"
-        print
-        pymclevel_log.setLevel(logging.INFO)
-        try:
-            merge.commit()
-        except EnvironmentError, e:
-            error('could not save world data: %s' % e)
-        pymclevel_log.setLevel(logging.CRITICAL)
-        
-        print
-        print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
-        
-        print "Updating contour data..."
-        for coord in reshaped:
-            del contour.edges[coord]
-        
-        try:
-            if contour.edges:
-                contour.write(contour_data_file)
-            else:
-                os.remove(contour_data_file)
-        except EnvironmentError, e:
-            error('could not updated world contour data: %s' % e)
+        def save_contour():
+            try:
+                if contour.empty:
+                    os.remove(contour_data_file)
+                else:
+                    contour.write(contour_data_file)
+            except EnvironmentError, e:
+                error('could not updated world contour data: %s' % e)
+            
+        if contour.shift:
+            print "Loading world..."
+            print
+            
+            try:
+                shift = Shifter(cli.world_dir)
+            except EnvironmentError, e:
+                error('could not read world data: %s' % e)
+            
+            print "Shifting chunks:"
+            print
+            
+            total = sum(1 for _ in shift.level.allChunks)
+            width = len(str(total))
+            def progress(n):
+                print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
+            shift.log_interval = 200
+            shift.log_function = progress
+            shifted = shift.shift_marked(contour)
+            
+            print
+            print "Relighting and saving:"
+            print
+            pymclevel_log.setLevel(logging.INFO)
+            try:
+                shift.commit()
+            except EnvironmentError, e:
+                error('could not save world data: %s' % e)
+            pymclevel_log.setLevel(logging.CRITICAL)
+            
+            print
+            print "Finished shifting, shifted: %d chunks" % shifted
+            
+            print "Updating contour data"
+            contour.shift.clear()
+            save_contour()
+            
+            print
+            
+        if contour.edges:
+            print "Loading world..."
+            print
+            
+            try:
+                merge = Merger(cli.world_dir, cli.filt_name, cli.filt_factor)
+            except EnvironmentError, e:
+                error('could not read world data: %s' % e)
+            
+            print "Merging chunks:"
+            print
+            
+            total = len(contour.edges)
+            width = len(str(total))
+            def progress(n):
+                print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
+            merge.log_interval = 10
+            merge.log_function = progress
+            reshaped = merge.erode(contour)
+            
+            print
+            print "Relighting and saving:"
+            print
+            pymclevel_log.setLevel(logging.INFO)
+            try:
+                merge.commit()
+            except EnvironmentError, e:
+                error('could not save world data: %s' % e)
+            pymclevel_log.setLevel(logging.CRITICAL)
+            
+            print
+            print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
+            
+            print "Updating contour data"
+            for coord in reshaped:
+                del contour.edges[coord]
+            save_contour()
             
     # Relight all the chunks on the map
     elif mode == Modes.relight:

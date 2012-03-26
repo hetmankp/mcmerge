@@ -14,16 +14,34 @@ class Shifter(object):
         
         self.log_interval = 1
         self.log_function = None
+        
+        self.__measured = (None, None)
     
     @property
     def level(self):
         return self.__level
     
-    def shift(self, distance):
+    def mark(self, contour, distance):
+        for coord in self.__level.allChunks:
+            contour.shift[coord] = distance
+        
+    def shift_all(self, distance):
+        return self.__shift(itertools.izip(self.__level.allChunks, itertools.repeat(distance)))
+    
+    def shift_marked(self, contour):
+        return self.__shift(contour.shift.iteritems())
+    
+    def __measure(self, height, distance):
+        # Return memoised value
+        args = (height, distance)
+        if args == self.__measured[0]:
+            return self.__measured[1]
+            
         # Calculate shift coordinates
-        height = self.__level.Height
         if distance == 0:
-            return
+            yfrom = (0, height)
+            yto = (0, height)
+            ybuffer = (0, 0)
         elif distance < 0:
             yfrom = (1 - distance, height)
             yto = (1, height + distance)
@@ -32,9 +50,23 @@ class Shifter(object):
             yfrom = (1, height - distance)
             yto = (1 + distance, height)
             ybuffer = (1, 1 + distance)
+            
+        self.__measured = (args, (yfrom, yto, ybuffer))
         
-        # Go through all the chunks and data around
-        for n, coord in enumerate(self.__level.allChunks):
+        return self.__measured[1]
+        
+    def __shift(self, distances):
+        # Prelims
+        height = self.__level.Height
+            
+        # Go through all the chunks and data provided
+        for n, (coord, distance) in enumerate(distances):
+            # Get measured boundaries
+            if distance == 0:
+                continue
+            else:
+                yfrom, yto, ybuffer = self.__measure(height, distance)
+            
             # Progress logging
             if self.log_function is not None:
                 if n % self.log_interval == 0:

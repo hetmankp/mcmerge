@@ -52,6 +52,12 @@ class Contour(object):
                 self.edges.setdefault(chunk, new()).direction.add((x, z))     # Edge for our existing chunk
                 self.edges.setdefault(curr,  new()).direction.add((-x, -z))   # Counter edge for the missing chunk
                 
+    @property
+    def empty(self):
+        # Note: self.heights only contributes ancillary data do is
+        # not considered
+        return not (self.shift or self.edges)
+    
     def height_map(self, level, block_roles):
         """
         Returns a height map object that integrates with and
@@ -85,9 +91,9 @@ class Contour(object):
                 # Assemble the block shifting data
                 try:
                     shift = self.shift[coords]
-                    shift_data = '%d' % shift
+                    shift_data = '% 5d' % shift
                 except LookupError:
-                    shift_data = '-'
+                    shift_data = '%5s' % '-'
                     
                 # Assemble the edge merging data
                 try:
