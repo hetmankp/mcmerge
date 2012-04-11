@@ -2,7 +2,7 @@ import itertools, collections
 import numpy
 from pymclevel import mclevel
 import pymclevel.materials
-import ancillary, carve, filter
+import ancillary, carve, filter, vec
 from contour import Contour, HeightMap
 from carve import ChunkSeed
 
@@ -27,7 +27,7 @@ class ChunkShaper(object):
         self.__contour = contour
         self.__height_map = height_map
         self.__edge = contour.edges[self.__chunk.chunkPosition]
-        self.__edge_direction = [numpy.array(v) for v in self.__edge.direction]
+        self.__edge_direction = vec.tuples2vecs(self.__edge.direction)
         self.__ocean = False
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
@@ -166,20 +166,22 @@ class ChunkShaper(object):
         """ Add chunk blocks until they reach provided height map """
 
         # Erode blocks based on the height map
-        mx, mz = self.height.shape
+        mx, mz, my = self.__local_ids.shape
         materials = self.__chunk.world.materials
         for x in xrange(0, mx):
             for z in xrange(0, mz):
+                local_columns = self.__local_ids[x, z], self.__local_data[x, z]
+                
                 # Get target height, make sure it's in the chunk
                 target = max(smoothed[x, z], self.height[x, z])
-                if target > self.__local_ids.shape[2] - 1:
-                    target = self.__local_ids.shape[2] - 1
+                if target > my - 1:
+                    target = my - 1
                     
                 # Collect details about blocks on the surface
                 initial = self.height[x, z]
-                below = self.__get_block((x, z, initial))
+                below = self.__get_block(local_columns, initial)
                 if self.__inchunk((x, z, initial + 1)):
-                    above = self.__get_block((x, z, initial + 1))
+                    above = self.__get_block(local_columns, initial + 1)
                 else:
                     above = None
                     
@@ -193,9 +195,9 @@ class ChunkShaper(object):
                 # Extend the surface
                 deep = materials.Dirt if self.__block_equal(below, materials.Grass) else below
                 self.__replace((x, z, target), initial - target - 1, None, [below, deep])
-                if target + 1 < self.__local_ids.shape[2]:
+                if target + 1 < my:
                     # Chop tree base if any shifting up occured
-                    top = self.__get_block((x, z, target + 1))
+                    top = self.__get_block(local_columns, target + 1)
                     if target > initial and top[0] in self.__block_roles.tree_trunks:
                         # Replace with sapling
                         if not self.__place_sapling((x, z, target + 1), top):
@@ -211,15 +213,16 @@ class ChunkShaper(object):
         """ Remove chunk blocks according to provided height map. """
 
         # Erode blocks based on the height map
-        mx, mz = self.height.shape
+        mx, mz, my = self.__local_ids.shape
         removed = numpy.zeros((mx, mz), bool)
         materials = self.__chunk.world.materials
         for x in xrange(0, mx):
             for z in xrange(0, mz):
+                local_columns = self.__local_ids[x, z], self.__local_data[x, z]
                 target = min(smoothed[x, z], self.height[x, z])
-                for n, y in enumerate(xrange(target + 1, self.__local_ids.shape[2])):
-                    curr, curr_data = self.__get_block((x, z, y))
-                    below = self.__local_ids[x, z, y - 1]
+                for n, y in enumerate(xrange(target + 1, my)):
+                    curr, curr_data = self.__get_block(local_columns, y)
+                    below = int(local_columns[0][y - 1])
                     empty = self.__empty_block(y)
                     
                     # Found a supported block
@@ -229,8 +232,6 @@ class ChunkShaper(object):
                         below in self.__block_roles.tree_leaves):
                            
                         # Disolve block if underwater
-                        empty = self.__empty_block(y)
-                        
                         if  empty.ID in self.__block_roles.solvent \
                         and curr in self.__block_roles.disolve:
                             replace = self.__block_roles.disolve[curr]
@@ -244,7 +245,7 @@ class ChunkShaper(object):
                     elif n > 0 and curr in self.__block_roles.tree_trunks:
                         if below not in self.__block_roles.tree_trunks:
                             # Remove tree trunk
-                            self.__place((x, z, y), self.__empty_block(y))
+                            self.__place((x, z, y), empty)
                             
                             # Replace with sapling
                             self.__place_sapling((x, z, target + 1), (curr, curr_data))
@@ -257,19 +258,15 @@ class ChunkShaper(object):
                         continue
                     
                     # Otherwise remove the block
-                    elif curr != self.__empty_block(y).ID:
+                    elif curr != empty.ID:
                         top = []
                         
                         # Remove if removable
                         if curr not in self.__block_roles.immutable:
-                            # For efficiency
-                            if n == 0:
-                                empty = self.__empty_block(y)
-                                
                             # Remember what blocks were previously found at the top
                             if n == 0:
                                 by = self.height[x, z]
-                                top = [self.__get_block((x, z, yi))
+                                top = [self.__get_block(local_columns, yi)
                                         for yi in xrange(by, by - self.shift_depth, -1)
                                         if yi >= 0]
                                 
@@ -286,8 +283,8 @@ class ChunkShaper(object):
                                 
                                 # Move down supported blocks to new height
                                 by = self.height[x, z] + 1
-                                if by < self.__local_ids.shape[2]:
-                                    supported_id = self.__local_ids[x, z, by]
+                                if by < my:
+                                    supported_id = int(local_columns[0][by])
                                     if supported_id in self.__block_roles.supported:
                                         # Find blocks to disolve
                                         if  empty.ID in self.__block_roles.solvent \
@@ -303,11 +300,11 @@ class ChunkShaper(object):
                                             
                                             # Supported block retained
                                             else:
-                                                new = self.__get_block((x, z, by))
+                                                new = self.__get_block(local_columns, by)
                             elif y <= self.sea_level and curr in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
-                                new = self.__empty_block(y)
+                                new = empty
                             
                             # Replace current block
                             if new is not None:
@@ -327,7 +324,6 @@ class ChunkShaper(object):
                                     self.__replace((x, z, y - 1), -len(top), None, top)
                                 
                                 # Bare dirt to grass
-                                below = self.__local_ids[x, z, y - 1]
                                 if below == materials.Dirt.ID:
                                     self.__place((x, z, y - 1), materials.Grass)
         
@@ -343,7 +339,6 @@ class ChunkShaper(object):
 
                     # Get our bearings
                     y = min(smoothed[x, z], self.height[x, z]) + 1
-                    below = self.__local_ids[x, z, y - 1]
                         
                     # River water
                     if y <= self.sea_level:
@@ -372,9 +367,10 @@ class ChunkShaper(object):
         
         return self.__block2pair(a) == self.__block2pair(b)
     
-    def __get_block(self, coords):
-        return (self.__local_ids[coords[0], coords[1], coords[2]],
-                self.__local_data[coords[0], coords[1], coords[2]])
+    def __get_block(self, columns, y):
+        # Cast result to int here so the operation is not repeated multiple
+        # times causing slow down
+        return (int(columns[0][y]), int(columns[1][y]))
 
     def __place(self, coords, block):
         """ Put the block into the specified coordinates """
@@ -392,8 +388,8 @@ class ChunkShaper(object):
             xzy = (coords[0], coords[1], y)
             if not self.__inchunk(xzy):
                 return
-            if from_ids is None or self.__local_ids[xzy] in from_ids:
-                if self.__local_ids[xzy] not in self.__block_roles.immutable:    # Leave immutable blocks alone!
+            if from_ids is None or int(self.__local_ids[xzy]) in from_ids:
+                if int(self.__local_ids[xzy]) not in self.__block_roles.immutable:    # Leave immutable blocks alone!
                     self.__place(xzy, blocks.next())
                     
     def __place_sapling(self, coords, tree_trunk):
