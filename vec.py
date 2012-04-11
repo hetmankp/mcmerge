@@ -24,3 +24,14 @@ def inside(v, vecs):
 def uniques(vecs):
     """ Return a list of only unique vectors """
     return [numpy.array(t) for t in set(tuple(v) for v in vecs)]
+
+def vecs2tuples(vecs):
+    """ Convert list of vectors into set of tuples """
+    
+    return set(tuple(v) for v in vecs)
+
+def tuples2vecs(tuples):
+    """ Convert set of tuples into list of vectors """
+    
+    return [numpy.array(t) for t in tuples]
+

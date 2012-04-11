@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, os.path, errno, logging
 import ancillary, cli
 from various import Shifter, Relighter
@@ -51,7 +53,7 @@ if __name__ == '__main__':
         
         print "Tracing world contour..."
         try:
-            contour.trace_world(cli.world_dir)
+            contour.trace_combine(cli.world_dir, cli.contour_combine, cli.merge_types, cli.contour_select, cli.contour_join)
         except (EnvironmentError, ContourLoadError), e:
             error('could not read world contour: %s' % e)
         
@@ -149,7 +151,7 @@ if __name__ == '__main__':
             except EnvironmentError, e:
                 error('could not updated world contour data: %s' % e)
             
-        if contour.shift:
+        if contour.shift and not cli.merge_no_shift:
             print "Loading world..."
             print
             
@@ -188,7 +190,7 @@ if __name__ == '__main__':
             
             print
             
-        if contour.edges:
+        if contour.edges and not cli.merge_no_merge:
             print "Loading world..."
             print
             

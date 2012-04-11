@@ -1,7 +1,7 @@
 import itertools
 
 class Enum(type):
-    """ Very simple enumeration"""
+    """ Very simple enumeration """
     
     class EnumElement(object):
         def __init__(self, name, val=None):
@@ -31,14 +31,19 @@ class Enum(type):
                 elements.append(ElementClass(elt, i))
                 dct[elt] = elements[-1]
                 
-        def gen():
-            for e in elements:
-                yield e
-                
-        dct['__iter__'] = lambda self: gen()
+        dct['_%s__elements' % mcs.__name__] = elements
         
         return type.__new__(mcs, name, bases, dct)
-
+    
+    def __iter__(cls):
+        def gen():
+            for e in cls.__elements:
+                yield e
+                
+        return gen()
+    
+    def __contains__(cls, item):
+        return item in cls.__elements
 
 def extend(iterable, n=None):
     """

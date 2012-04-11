@@ -217,6 +217,15 @@ def get_corners(edge, straights):
         
     return concave_corners, convex_corners
 
+def get_features(edge):
+    """ Returns only the edge components specifying neighbouring erosion features """
+    
+    straights = get_straights(edge)
+    all_corners = itertools.chain(edge, (x for x in get_induced_corners(edge) if not vec.inside(x, edge)))
+    concave, convex = get_corners(all_corners, straights)
+    
+    return straights, concave, convex
+
 def mask_edge(shape, v, widths):
     """ Create mask for one side of an area out of a sequence of widths """
     
@@ -277,9 +286,7 @@ def make_mask_corners(shape, width, seed, components, concave, convex):
 def make_mask(shape, edge, width, seed):
     """ Make a mask representing a valley out of a countour edge specification """
     
-    straights = get_straights(edge)
-    all_corners = itertools.chain(edge, (x for x in get_induced_corners(edge) if not vec.inside(x, edge)))
-    concave, convex = get_corners(all_corners, straights)
+    straights, concave, convex = get_features(edge)
     components = vec.uniques(itertools.chain.from_iterable(vec.decompose(v) for v in itertools.chain(straights, concave, convex)))
     return numpy.logical_or(
         make_mask_straights(shape, width, seed, components, straights),

@@ -1,7 +1,7 @@
 import itertools, collections
 import numpy
 from pymclevel import mclevel
-import filter
+import ancillary, filter, carve, vec
 
 class ContourLoadError(Exception):
     pass
@@ -27,31 +27,19 @@ class Contour(object):
         'ocean': MethodsFields(4, 'O'),
     }
     
+    class SelectOperation(object):
+        __metaclass__ = ancillary.Enum
+        __elements__ = ('union', 'intersection', 'difference')
+        
+    class JoinMethod(object):
+        __metaclass__ = ancillary.Enum
+        __elements__ = ('add', 'replace', 'transition')
+    
     def __init__(self):
         self.shift = {}         # Each coordinate maps to an integer shift distance
         self.edges = {}         # Each coordinate points to an EdgeData instance
         self.heights = {}       # Each coordinate stores a chunk height map array
     
-    def __surrounding(self, coord):
-        """Generate coordinates of all surrounding chunks"""
-        
-        for z in xrange(-1, 2):
-            for x in xrange(-1, 2):
-                if z != 0 or x != 0:
-                    yield (coord[0] + x, coord[1] + z), (x, z)
-        
-    def __trace_edge(self, chunk, method, all_chunks):
-        """
-        Checks surrounding chunks and records a set of
-        vectors for the direction of contour faces.
-        """
-        
-        for curr, (x, z) in self.__surrounding(chunk):
-            if curr not in all_chunks:
-                new = lambda: EdgeData(method, set())
-                self.edges.setdefault(chunk, new()).direction.add((x, z))     # Edge for our existing chunk
-                self.edges.setdefault(curr,  new()).direction.add((-x, -z))   # Counter edge for the missing chunk
-                
     @property
     def empty(self):
         # Note: self.heights only contributes ancillary data do is
@@ -66,17 +54,158 @@ class Contour(object):
         
         return HeightMap(self.heights, self.edges, level, block_roles)
     
-    def trace_world(self, world_dir):
+    @staticmethod
+    def __merge_edge(a, b):
+        """Merges two edges into a new value with elements of both"""
+        
+        return EdgeData(a.method & b.method, a.direction + b.direction)
+        
+    def __surrounding(self, coord):
+        """Generate coordinates of all surrounding chunks"""
+        
+        for z in xrange(-1, 2):
+            for x in xrange(-1, 2):
+                if z != 0 or x != 0:
+                    yield (coord[0] + x, coord[1] + z), (x, z)
+        
+    def __trace_edge(self, edges, chunk, all_chunks):
+        """
+        Checks surrounding chunks and records a set of
+        vectors for the direction of contour faces.
+        """
+        
+        for curr, (x, z) in self.__surrounding(chunk):
+            if curr not in all_chunks:
+                edges.setdefault(chunk, set()).add((x, z))      # Edge for our existing chunk
+                edges.setdefault(curr,  set()).add((-x, -z))    # Counter edge for the missing chunk
+                
+    def __trace(self, level):
+        """
+        Simply find edges at the interface between existing
+        and missing chunks.
+        """
+        
+        edges = {}
+        all_chunks = set(level.allChunks)
+        for chunk in all_chunks:
+            self.__trace_edge(edges, chunk, all_chunks)
+            
+        return edges
+    
+    def __select(self, op, trace):
+        """
+        Selects edges from the list provided by taking the set
+        operation between the exsiting and new edge sets and
+        retaining the result.
+        """
+        
+        # This will be a fairly common case so let's speed it up
+        if not self.edges:
+            if op == self.SelectOperation.union:
+                return trace
+            elif op == self.SelectOperation.intersection:
+                return {}
+            elif op == self.SelectOperation.difference:
+                return trace
+            else:
+                raise NameError("unknown selection type '%s'" % op)
+            
+        # Find which chunks to retain in the selection
+        else:
+            if op == self.SelectOperation.union:
+                    retain = set(trace)
+            elif op == self.SelectOperation.intersection:
+                    retain = set(trace) & set(self.edges)
+            elif op == self.SelectOperation.difference:
+                retain = set(trace) - set(self.edges)
+            else:
+                raise NameError("unknown selection type '%s'" % op)
+            
+        # Return only selected edges
+        return dict((coord, trace[coord]) for coord in retain)
+        
+    def __join(self, op, new_methods, trace):
+        """
+        Joins the existing edge data with the new edge data
+        provided taking care to 
+        """
+            
+        method_bits = reduce(lambda a, x: a | self.methods[x].bit, new_methods, 0)
+        
+        # Speed up common case
+        if not self.edges:
+            return dict((k, EdgeData(method_bits, v)) for k, v in trace.iteritems())
+        
+        # Helpers
+        def direction(coord):
+            try:
+                return self.edges[coord].direction
+            except KeyError:
+                return trace[coord]
+        
+        # Add merge method bits to the selected trace data
+        edges = {}
+        for coord in trace.iterkeys():
+            # Combine original merge method with new method
+            if op == self.JoinMethod.add:
+                try:
+                    org_method = self.edges[coord].method
+                except KeyError:
+                    edges[coord] = EdgeData(method_bits, direction(coord))
+                else:
+                    edges[coord] = EdgeData(org_method & method_bits, direction(coord))
+                    
+            # Only record the new merge method
+            elif op in (self.JoinMethod.replace, self.JoinMethod.transition):
+                edges[coord] = EdgeData(method_bits, direction(coord))
+                
+        # If we are transitioning we also need to find the chunks joining both sets
+        if op == self.JoinMethod.transition:
+            # Finding the joining chunks
+            join = set()
+            for coord in (set(edges) & set(self.edges)):
+                # Get a full set of edge features
+                def features(direction):
+                    features = set()
+                    for component in carve.get_features(vec.tuples2vecs(direction)):
+                        features.update(vec.vecs2tuples(component))
+                    return features
+                
+                # Only want edges with no overlaping directions
+                if not (features(self.edges[coord].direction) & features(trace[coord])):
+                    join.add(coord)
+                    
+            # We want the merge methods to overlap here
+            for coord in join:
+                original = self.edges[coord]
+                edges[coord] = EdgeData(original.method | method_bits, original.direction)
+                
+        return edges
+            
+    def trace_world(self, world_dir, methods):
         """
         Find the contour of the existing world defining the
         edges at the contour interface.
         """
         
-        self.edges = {}
+        method_bits = reduce(lambda a, x: a | self.methods[x].bit, methods, 0)
+        trace = self.__trace(mclevel.fromFile(world_dir))
+        self.edges = dict((k, EdgeData(method_bits, v)) for k, v in trace.iteritems())
+            
+    def trace_combine(self, world_dir, combine, methods, select, join):
+        """
+        Find the contour at the interface between existing and empty
+        chunks, then merge appropriately with existing data.
+        """
+        
         level = mclevel.fromFile(world_dir)
-        all_chunks = set(level.allChunks)
-        for chunk in all_chunks:
-            self.__trace_edge(chunk, self.methods['river'].bit, all_chunks)
+        trace = self.__trace(mclevel.fromFile(world_dir))
+        trace = self.__select(select, trace)
+        edges = self.__join(join, methods, trace)
+        if combine:
+            self.edges.update(edges)
+        else:
+            self.edges = edges
     
     def write(self, file_name):
         """ Write to file using """

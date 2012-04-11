@@ -1,5 +1,5 @@
 import sys, os.path, getopt
-import carve, filter, various, merge
+import carve, contour, filter, various, merge
 
 # Static constants
 version = '0.5.3'
@@ -7,11 +7,22 @@ version = '0.5.3'
 # Define option defaults
 contour_file_name = 'contour.dat'
 contour_reset = False
+contour_select = 'union'
+contour_join = 'replace'
+contour_combine = False
+merge_types = ['river']
+merge_no_shift = False
+merge_no_merge = False
 filt_factor = 1.7
 filt_name = 'smooth'
 shift_down = 1
 shift_immediate = False
 world_dir = None
+
+# Validate them
+assert all(x in contour.Contour.methods for x in merge_types)
+assert contour_select in contour.Contour.SelectOperation
+assert contour_join in contour.Contour.JoinMethod
 
 # Useful values
 program_name = os.path.basename(sys.argv[0])
@@ -40,14 +51,11 @@ class Command(object):
 command_list = []
 command_dict = {}
 
-def complete(name):
-    """
-    Find full command name corresponding to the given abbreviation.
-    May raise KeyError if abbreviation is ambiguous.
-    """
+def _complete(options, name):
+    """ Complete name out of a list of options """
     
     found = None
-    for n in command_list:
+    for n in options:
         if n is None:
             continue
         
@@ -55,9 +63,20 @@ def complete(name):
             if found is None:
                 found = n
             else:
-                KeyError("ambiguous command name '%s', please provide full name" % args[0])
+                KeyError("ambiguous name")
                 
     return found
+
+def complete(name):
+    """
+    Find full command name corresponding to the given abbreviation.
+    May raise KeyError if abbreviation is ambiguous.
+    """
+    
+    try:
+        return _complete(command_list, name)
+    except KeyError:
+        KeyError("ambiguous command name '%s', please provide full name" % args[0])
     
 def parse(argv):
     """
@@ -292,14 +311,39 @@ class RelightCommand(Command):
 class TraceCommand(Command):
     name = "trace"
     
-    short_opts = "rc:"
+    short_opts = "t:s:j:bdrc:"
     long_opts = ['help', 'reset', 'contour=']
     
     def usage(self):
         print "Usage: %s %s <world_dir>" % (program_name, self.name)
         print
-        print "Generates a contour data file specifying the edge of the original"
-        print "world before new areas are added."
+        print "Generates a contour data file specifying the edge of the original world"
+        print "before new areas are added."
+        print
+        print "Additional data may be added to the initial edge contour. The new edge"
+        print "is first selected by performing the specified set operation. Using the"
+        print "specified new merge type, the merge types in old and new data sets are"
+        print "then combined using the given joining method. Finally old and new data"
+        print "is either combined together or the old data is completely discarded."
+        print
+        print "Options:"
+        print "-t, --type=<val>              type of merge between traced edge chunks"
+        print "                              one of: %s" % ', '.join(contour.Contour.methods.iterkeys())
+        print "                              multiple may be specified (default: %s)" % ', '.join(merge_types)
+        print "-s, --select=<operation>      new edge will be formed by combinging with old"
+        print "                              edge set using one of:"
+        print "                                union      - edge chunks from either"
+        print "                                intersect  - edge chunks only in both"
+        print "                                difference - edge chunks in new but not old"
+        print "                              (default: %s)" % contour_select
+        print "-j, --join=<method>           join old and new merge type using one of:"
+        print "                                add        - both merge types"
+        print "                                replace    - only use new merge type"
+        print "                                transition - use both at meeting point but"
+        print "                                             only new for the rest"
+        print "                              (default: %s)" % contour_join
+        print "-b, --combine                 combine new and existing data together"
+        print "-d, --discard                 retain new data and discard old (default)"
         print 
         print "Common options:"
         print "-r, --reset                   reset pre-existing contour file"
@@ -307,13 +351,44 @@ class TraceCommand(Command):
         print "                              world directory, default: %s" % contour_file_name
         
     def parse(self, opts, args):
-        global world_dir, contour_reset, contour_file_name
+        global world_dir, merge_types, contour_select, contour_join, contour_combine, contour_reset, contour_file_name
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
     
+        if any(opt in ('-t', '--type') for opt, _ in opts):
+            merge_types = []
+            
         for opt, arg in opts:
-            if opt in ('-r', '--reset'):
+            if opt in ('-t', '--type'):
+                try:
+                    merge_type = _complete(contour.Contour.methods.iterkeys(), arg)
+                except KeyError:
+                    error("ambigous type value '%s'" % arg)
+                    
+                if merge_type is None:
+                    error("unknown type '%s' requested" % arg)
+                else:
+                    merge_types.append(merge_type)
+            elif opt in ('-s', '--select'):
+                try:
+                    contour_select = _complete([str(x) for x in contour.Contour.SelectOperation], arg)
+                except KeyError:
+                    error("ambigous select value '%s'" % arg)
+                if contour_select is None:
+                    error("unknown select value '%s' requested" % arg)
+            elif opt in ('-j', '--join'):
+                try:
+                    contour_join = _complete([str(x) for x in contour.Contour.JoinMethod], arg)
+                except KeyError:
+                    error("ambigous join value '%s'" % arg)
+                if contour_join is None:
+                    error("unknown join value '%s' requested" % arg)
+            elif opt in ('-b', '--combine'):
+                contour_combine = True
+            elif opt in ('-d', '--discard'):
+                contour_combine = False
+            elif opt in ('-r', '--reset'):
                 contour_reset = True
             elif opt in ('-c', '--contour'):
                 contour_file_name = arg
@@ -328,6 +403,7 @@ class MergeCommand(Command):
                  'valley-height=', 'river-centre-deviation=',
                  'river-width-deviation=', 'river-centre-bend=',
                  'river-width-bend=','sea-level=', 'narrow-factor=',
+                 'no-shift', 'no-merge',
                  'cover-depth=', 'no-relight']
     
     def usage(self):
@@ -362,6 +438,9 @@ class MergeCommand(Command):
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
         print
+        print "    --no-shift                don't perform shifting operations"
+        print "    --no-merge                don't perform merging operations"
+        print
         print "Common options:"
         print "-c, --contour=<file_name>     file that records the contour data in the"
         print "                              world directory, default: %s" % contour_file_name
@@ -370,6 +449,7 @@ class MergeCommand(Command):
         
     def parse(self, opts, args):
         global world_dir, contour_file_name, filt_factor, filt_name
+        global merge_no_shift, merge_no_merge
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
@@ -382,8 +462,6 @@ class MergeCommand(Command):
                     filt_name = arg
                 else:
                     error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
-            elif opt in ('-c', '--contour'):
-                contour_file_name = arg
             elif opt == '--sea-level':
                 merge.ChunkShaper.sea_level = _get_int(arg, 'sea level')
             elif opt == '--cover-depth':
@@ -411,6 +489,12 @@ class MergeCommand(Command):
                 carve.river_frequency_width = _get_float(arg, 'river width bend distance')
             elif opt == '--narrow-factor':
                 carve.narrowing_factor = _get_int(arg, 'narrowing factor')
+            elif opt == '--no-shift':
+                merge_no_shift = True
+            elif opt == '--no-merge':
+                merge_no_merge = True
+            elif opt in ('-c', '--contour'):
+                contour_file_name = arg
             elif opt == '--no-relight':
                 various.Shifter.relight = False
                 merge.Merger.relight = False
