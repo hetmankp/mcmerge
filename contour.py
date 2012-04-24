@@ -292,6 +292,7 @@ class HeightMap(object):
         self.__edges = edges
         self.__level = level
         self.__block_roles = block_roles
+        self.__deferred = set()
         
     def __getitem__(self, key):
         try:
@@ -301,7 +302,47 @@ class HeightMap(object):
             height = self.find_heights(chunk.Blocks, self.__block_roles)
             self.__heights[key] = height
             return height
+    
+    @property
+    def invalidations(self):
+        """
+        This set specifies items for deferred invalidation. It
+        behaves exactly like a Python set() object.
+        """
         
+        return self.__deferred
+    
+    def invalidate(self, key):
+        """
+        Invalidate the value found under the specified key so that
+        it is re-calculated next time it is requested.
+        """
+        
+        try:
+            del self.__heights[key]
+        except KeyError:
+            pass
+    
+    def invalidate_deferred(self):
+        """
+        Invalidates all items specifed by the self.invalidations
+        set.
+        """
+        
+        for key in self.__deferred:
+            try:
+                del self.__heights[key]
+            except KeyError:
+                pass
+        self.__deferred.clear()
+    
+    def invalidate_all(self):
+        """
+        Invalidate all items immediately.
+        """
+        
+        self.__heights.clear()
+    
     def prune(self):
         """
         Removes height maps no longer needing caching given the

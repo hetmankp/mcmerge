@@ -589,9 +589,13 @@ class Merger(object):
                     cs = ChunkShaper(self.__level.getChunk(*coord), contour, height_map, self.__block_roles)
                     cs.reshape(method, self.filt_name, self.filt_factor)
                     reshaped[method].append(coord)
+                    height_map.invalidations.add(coord)
                 
                 # Count relevant chunks
                 n += 1
+            
+            # Height map must be invalidated between stages
+            height_map.invalidate_deferred()
         
         # Do final logging update for the end
         if self.log_function is not None:
