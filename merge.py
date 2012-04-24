@@ -82,18 +82,12 @@ class ChunkShaper(object):
         
         return res, mask
     
-    def reshape(self, filt_name, filt_factor):
+    def reshape(self, method, filt_name, filt_factor):
         """ Reshape the original chunk to the smoothed out result """
         
-        self.__ocean = bool(self.__edge.method & Contour.methods['ocean'].bit)
-            
-        changed = False
-        for method in ['average', 'river']:   # This defines the order of processing
-            if self.__edge.method & Contour.methods[method].bit:
-                self.__shape(method, filt_name, filt_factor)
-                changed = True
-                
-        if changed:
+        if self.__edge.method & Contour.methods[method].bit:
+            self.__ocean = bool(self.__edge.method & Contour.methods['ocean'].bit)
+            self.__shape(method, filt_name, filt_factor)
             self.__chunk.chunkChanged()
         
     def __shape(self, method, filt_name, filt_factor):
@@ -504,6 +498,8 @@ class Merger(object):
     
     BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'solvent', 'disolve', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
+    processing_order = ('average', 'river')
+    
     def __init__(self, world_dir, filt_name, filt_factor):
         self.filt_name = filt_name
         self.filt_factor = filt_factor
@@ -574,24 +570,32 @@ class Merger(object):
         # Requisite objects
         height_map = contour.height_map(self.__level, self.__block_roles)
         
-        # Go through all the chunks that require smoothing
-        reshaped = []
-        for n, coord in enumerate(contour.edges.iterkeys()):
-            # Progress logging
-            if self.log_function is not None:
-                if n % self.log_interval == 0:
-                    self.log_function(n)
+        # Go through each processing method in turn
+        reshaped = {}; n = 0
+        for method in self.processing_order:
+            method_bit = Contour.methods[method].bit
+            reshaped[method] = []
+            
+            # Go through all the chunks that require processing
+            for coord in (k for k, v in contour.edges.iteritems() if v.method & method_bit != 0):
+                # Progress logging
+                if self.log_function is not None:
+                    if n % self.log_interval == 0:
+                        self.log_function(n)
 
-            # We only re-shape when surrounding chunks are present to prevent river spillage
-            # and ensure padding requirements can be fulfilled
-            if self.__have_surrounding(coord, filter.padding):
-                cs = ChunkShaper(self.__level.getChunk(*coord), contour, height_map, self.__block_roles)
-                cs.reshape(self.filt_name, self.filt_factor)
-                reshaped.append(coord)
+                # We only re-shape when surrounding chunks are present to prevent river spillage
+                # and ensure padding requirements can be fulfilled
+                if self.__have_surrounding(coord, filter.padding):
+                    cs = ChunkShaper(self.__level.getChunk(*coord), contour, height_map, self.__block_roles)
+                    cs.reshape(method, self.filt_name, self.filt_factor)
+                    reshaped[method].append(coord)
+                
+                # Count relevant chunks
+                n += 1
         
         # Do final logging update for the end
         if self.log_function is not None:
-            self.log_function(n + 1)
+            self.log_function(n)
         
         return reshaped
     

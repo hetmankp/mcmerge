@@ -202,7 +202,8 @@ if __name__ == '__main__':
             print "Merging chunks:"
             print
             
-            total = len(contour.edges)
+            active = [Contour.methods[x].bit for x in Merger.processing_order]
+            total = sum(sum((1 if x.method & y else 0) for y in active) for x in contour.edges.itervalues())
             width = len(str(total))
             def progress(n):
                 print ("... %%%dd/%%d (%%.1f%%%%)" % width) % (n, total, 100.0*n/total)
@@ -221,11 +222,16 @@ if __name__ == '__main__':
             pymclevel_log.setLevel(logging.CRITICAL)
             
             print
-            print "Finished merging, merged: %d/%d chunks" % (len(reshaped), total)
+            print "Finished merging, merged: %d/%d chunks" % (sum(len(x) for x in reshaped.itervalues()), total)
             
             print "Updating contour data"
-            for coord in reshaped:
-                del contour.edges[coord]
+            mask = reduce(lambda a, x: a | x, active, 0)
+            for method, coords in reshaped.iteritems():
+                method_bit = Contour.methods[method].bit
+                for coord in coords:
+                    contour.edges[coord].method &= ~method_bit
+                    if contour.edges[coord].method & mask == 0:
+                        del contour.edges[coord]
             save_contour()
             
     # Relight all the chunks on the map

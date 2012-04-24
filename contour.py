@@ -7,7 +7,7 @@ class ContourLoadError(Exception):
     pass
 
 MethodsFields = collections.namedtuple('MethodsFields', ('bit', 'symbol'))
-EdgeData = collections.namedtuple('EdgeData', ('method', 'direction'))
+EdgeData = ancillary.record('EdgeData', ('method', 'direction'))
 
 class Contour(object):
     """
