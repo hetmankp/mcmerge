@@ -13,7 +13,6 @@ contour_combine = False
 merge_types = ['river']
 merge_no_shift = False
 merge_no_merge = False
-filt_factor = 1.7
 filt_name = 'smooth'
 shift_down = 1
 shift_immediate = False
@@ -402,13 +401,13 @@ class MergeCommand(Command):
     name = "merge"
     
     short_opts = "s:f:c:d:r:v:"
-    long_opts = ['help', 'smooth=', 'filter=', 'contour=',
+    long_opts = ['help', 'factor-river=', 'factor-average=', 'filter=',
                  'river-width=', 'valley-width=', 'river-height=',
                  'valley-height=', 'river-centre-deviation=',
                  'river-width-deviation=', 'river-centre-bend=',
                  'river-width-bend=','sea-level=', 'narrow-factor=',
-                 'no-shift', 'no-merge',
-                 'cover-depth=', 'no-relight']
+                 'no-shift', 'no-merge', 'cover-depth=',
+                 'contour=', 'no-relight']
     
     def usage(self):
         print "Usage: %s %s <world_dir>" % (program_name, self.name)
@@ -418,7 +417,8 @@ class MergeCommand(Command):
         print "commands."
         print 
         print "Options:"
-        print "-s, --smooth=<factor>         smoothing filter factor, default: %.2f" % filt_factor
+        print "-s, --factor-river=<factor>   smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_river
+        print "    --factor-average=<factor> smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_average
         print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
         print "    --cover-depth=<val>       depth of blocks transferred from original surface"
@@ -452,15 +452,17 @@ class MergeCommand(Command):
         print "                              dark areas"
         
     def parse(self, opts, args):
-        global world_dir, contour_file_name, filt_factor, filt_name
+        global world_dir, contour_file_name, filt_name
         global merge_no_shift, merge_no_merge
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
     
         for opt, arg in opts:
-            if opt in ('-s', '--smooth'):
-                filt_factor = _get_float(arg, 'smoothing filter factor')
+            if opt in ('-s', '--factor-river'):
+                merge.ChunkShaper.filt_factor_river = _get_float(arg, 'river smoothing filter factor')
+            elif opt == '--factor-average':
+                merge.ChunkShaper.filt_factor_average = _get_float(arg, 'average smoothing filter factor')
             elif opt in ('-f', '--filter'):
                 if arg in filter.filters:
                     filt_name = arg

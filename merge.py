@@ -19,6 +19,9 @@ class ChunkShaper(object):
     
     shift_depth = 3
     
+    filt_factor_river = 1.7
+    filt_factor_average = 1.0
+    
     def __init__(self, chunk, contour, height_map, block_roles):
         """ Takes a pymclevel chunk as an initialiser """
         
@@ -82,22 +85,22 @@ class ChunkShaper(object):
         
         return res, mask
     
-    def reshape(self, method, filt_name, filt_factor):
+    def reshape(self, method, filt_name):
         """ Reshape the original chunk to the smoothed out result """
         
         if self.__edge.method & Contour.methods[method].bit:
             self.__ocean = bool(self.__edge.method & Contour.methods['ocean'].bit)
-            self.__shape(method, filt_name, filt_factor)
+            self.__shape(method, filt_name)
             self.__chunk.chunkChanged()
         
-    def __shape(self, method, filt_name, filt_factor):
+    def __shape(self, method, filt_name):
         """ Does the reshaping work for a specific shaping method """
         
         if method == 'river':
-            smoothed, erode_mask = self.erode_valley(filt_name, filt_factor)
+            smoothed, erode_mask = self.erode_valley(filt_name, self.filt_factor_river)
             self.remove(smoothed, erode_mask)
         elif method in ('average', 'tidy'):
-            smoothed = self.erode_slope(filt_name, filt_factor)
+            smoothed = self.erode_slope(filt_name, self.filt_factor_average)
             self.elevate(smoothed)
             self.remove(smoothed, None)
         else:
@@ -500,9 +503,8 @@ class Merger(object):
     
     processing_order = ('average', 'river', 'tidy')
     
-    def __init__(self, world_dir, filt_name, filt_factor):
+    def __init__(self, world_dir, filt_name):
         self.filt_name = filt_name
-        self.filt_factor = filt_factor
         
         self.__level = mclevel.fromFile(world_dir)
         self.__block_roles = self.BlockRoleIDs(
@@ -587,7 +589,7 @@ class Merger(object):
                 # and ensure padding requirements can be fulfilled
                 if self.__have_surrounding(coord, filter.padding):
                     cs = ChunkShaper(self.__level.getChunk(*coord), contour, height_map, self.__block_roles)
-                    cs.reshape(method, self.filt_name, self.filt_factor)
+                    cs.reshape(method, self.filt_name)
                     reshaped[method].append(coord)
                     height_map.invalidations.add(coord)
                 

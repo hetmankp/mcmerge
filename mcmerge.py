@@ -195,7 +195,7 @@ if __name__ == '__main__':
             print
             
             try:
-                merge = Merger(cli.world_dir, cli.filt_name, cli.filt_factor)
+                merge = Merger(cli.world_dir, cli.filt_name)
             except EnvironmentError, e:
                 error('could not read world data: %s' % e)
             
