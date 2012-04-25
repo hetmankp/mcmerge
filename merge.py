@@ -96,7 +96,7 @@ class ChunkShaper(object):
         if method == 'river':
             smoothed, erode_mask = self.erode_valley(filt_name, filt_factor)
             self.remove(smoothed, erode_mask)
-        elif method == 'average':
+        elif method in ('average', 'tidy'):
             smoothed = self.erode_slope(filt_name, filt_factor)
             self.elevate(smoothed)
             self.remove(smoothed, None)
@@ -498,7 +498,7 @@ class Merger(object):
     
     BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'solvent', 'disolve', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
-    processing_order = ('average', 'river')
+    processing_order = ('average', 'river', 'tidy')
     
     def __init__(self, world_dir, filt_name, filt_factor):
         self.filt_name = filt_name

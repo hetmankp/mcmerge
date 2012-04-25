@@ -25,6 +25,7 @@ class Contour(object):
         'river': MethodsFields(1, 'R'),
         'average': MethodsFields(2, 'A'),
         'ocean': MethodsFields(4, 'O'),
+        'tidy': MethodsFields(8, 'T'),
     }
     
     class SelectOperation(object):
@@ -179,6 +180,16 @@ class Contour(object):
             for coord in join:
                 original = self.edges[coord]
                 edges[coord] = EdgeData(original.method | method_bits, original.direction)
+            
+            # Finally need to smooth all the joining areas
+            method_bit = Contour.methods['tidy'].bit
+            for coord in join:
+                edges[coord].method |= method_bit
+                for around, _ in self.__surrounding(coord):
+                    try:
+                        edges[around].method |= method_bit
+                    except KeyError:
+                        pass
                 
         return edges
             

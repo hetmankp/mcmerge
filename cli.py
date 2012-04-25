@@ -328,7 +328,11 @@ class TraceCommand(Command):
         print
         print "Options:"
         print "-t, --type=<val>              type of merge between traced edge chunks"
-        print "                              one of: %s" % ', '.join(contour.Contour.methods.iterkeys())
+        print "                              one of:"
+        print "                                average    - connect both sides without river"
+        print "                                river      - place river between boths sides"
+        print "                                ocean      - add ocean below sea level when"
+        print "                                             using 'average'"
         print "                              multiple may be specified (default: %s)" % ', '.join(merge_types)
         print "-s, --select=<operation>      new edge will be formed by combinging with old"
         print "                              edge set using one of:"
