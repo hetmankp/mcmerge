@@ -60,6 +60,7 @@ class Shifter(object):
         height = self.__level.Height
             
         # Go through all the chunks and data provided
+        n = 0
         for n, (coord, distance) in enumerate(distances):
             # Get measured boundaries
             if distance == 0:
@@ -148,6 +149,7 @@ class Relighter(object):
     
     def relight(self):
         # Go through all chunks
+        n = 0
         for n, coord in enumerate(self.__level.allChunks):
             # Progress logging
             if self.log_function is not None:
