@@ -63,7 +63,7 @@ Once you have the required bits installed, you can download this tool then fire 
    
     - Windows: %AppData%\\.minecraft\\saves
     - Linux: $HOME/.minecraft/saves
-    - OS X: Probably the same as Linux?
+    - OS X: ~/Library/Application\ Support/minecraft/saves/
 
 2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. To do this run (make sure you have the correct world name):
 
