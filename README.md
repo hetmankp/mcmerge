@@ -93,13 +93,46 @@ NOTE: For Windows users using the packaged binary, replace 'python mcmerge.py' w
 Configuration
 -------------
 
-To see what options are available for you to fiddle with type: python mcmerge.py --help
+To see what commands are available in the tool, type: python mcmerge.py help
+You can access the options available for each command with: python mcmerge.py help <command_name>
 
-A few things worth mentioning. Firstly there are two filters, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to look more boring. Note that the --smooth factor means different things for both these filters (for the 'smooth' filter, bigger means less smohting, where as for 'gauss' it's the reverse), however both will give similar results for a value of 1.7.
+Below are a few comments about the various commands that may be useful.
 
-You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. Finally there's an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk.
+### *Common*
+Several commands share some options. The name of the contour file found in the world directory may be specified with the --contour option. Contour files are allowed to be built up in several steps, however it is possible to clear all previous data and start fresh by using the --reset option. Finally, commands that manipulate chunks will finish up by relighting them, this step can be skipped for speed by using --no-relight but it may leave some dark spots.
 
-Some additional settings worth mentioning are --shift-down which specifies how much to shift the world in the shift phase (and can be negated to shift up). The --cover-depth option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley. It is also possible to skip the relighting step by using --no-relight for quicker results.
+### shift
+Shifting is not normally done immediately but the chunks to shift are instead marked in the contour file, and only applied with the 'merge' command. However, it is possible to force shifting right away with the --immediate option. You can alter by how many blocks the chunks are shifted up or down by giving a number to the --up or --down options respectively.
+
+### relight
+This is simply used to relight all chunks and does nothing else.
+
+### trace
+The contour may be built up in multiple steps, however this is quite involved and for most usage scenarios it is recommended to simply use the default setup which will mark out a river around the edge of the world. For more complicated contours additional options are available, this is is however not an ideal interface. A description of the contour data file is also available in the CONTOUR.md file, should anyone wish to build a better GUI tool to perform this tracing.
+
+For advance usage the way the contour is built up may be understand by breaking it up into several steps. The key to keep in mind here is that first the new edge is traced out and trimmed by comparing it already existing edge data in the contour file, and then the resultant new edge data is added to the contour file.
+
+1. First the type of merging to be performed with the edge about to be traced is specified. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
+2. The chunks running along both sides of the traced edged are selected. These may be either:
+   * 'union'      - chunks from both the existing and new edge being added
+   * 'intersect'  - only chunks present in both the existing and the new edge
+   * 'difference' - only chunks present in the new edge but not the old one
+3. Once the chunks defining the edge have been selected, the type of merge (as specified in step #1) will be applied to those edges chunks. Again, this is one of:
+   * 'add'        - both the merge type from the existing and the new edge are used
+   * 'replace'    - for the chunks from the new edge, only use the new merge type
+   * 'transition' - this is mostly like 'replace' however it attempts to perform an 'add' on the chunks
+                    where the old and new edges meet and does some additional smoothing for a nice
+                    transition between the two
+4. Finally once the new edge is fully defined with steps 1-3, it is either added to the contour data along with the old data using --combine, or it replaces the old data entirely by using --discard.
+
+NOTE: All these option values may be abbreviated by using only the leading letters (or even letter).
+
+### merge
+There are two filters available that may be specified with --filter, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to give more boring looking results. Note that the filter factors mean different things for the smooth and gauss filters; for the 'smooth' filter, bigger means less smohting, where as for 'gauss' it's the reverse (both will give similar results for a value of about 1.7).
+
+You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. There's also an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk. Finally, the --cover-depth option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley.
+
+While the merge command will by default perform both shifting and merging operations, either one of these can be skipped with the --no-shift and --no-merge options respectively.
 
 Happy merging!
 
