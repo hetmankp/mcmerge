@@ -23,7 +23,7 @@ class Contour(object):
     
     methods = {
         'river': MethodsFields(1, 'R'),
-        'average': MethodsFields(2, 'A'),
+        'even': MethodsFields(2, 'E'),
         'ocean': MethodsFields(4, 'O'),
         'tidy': MethodsFields(8, 'T'),
     }

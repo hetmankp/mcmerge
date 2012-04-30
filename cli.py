@@ -328,10 +328,10 @@ class TraceCommand(Command):
         print "Options:"
         print "-t, --type=<val>              type of merge between traced edge chunks"
         print "                              one of:"
-        print "                                average    - connect both sides without river"
+        print "                                even       - connect both sides without river"
         print "                                river      - place river between boths sides"
         print "                                ocean      - add ocean below sea level when"
-        print "                                             using 'average'"
+        print "                                             using 'even'"
         print "                              multiple may be specified (default: %s)" % ', '.join(merge_types)
         print "-s, --select=<operation>      new edge will be formed by combinging with old"
         print "                              edge set using one of:"
@@ -401,7 +401,7 @@ class MergeCommand(Command):
     name = "merge"
     
     short_opts = "s:f:c:d:r:v:"
-    long_opts = ['help', 'factor-river=', 'factor-average=', 'filter=',
+    long_opts = ['help', 'factor-river=', 'factor-even=', 'filter=',
                  'river-width=', 'valley-width=', 'river-height=',
                  'valley-height=', 'river-centre-deviation=',
                  'river-width-deviation=', 'river-centre-bend=',
@@ -418,7 +418,7 @@ class MergeCommand(Command):
         print 
         print "Options:"
         print "-s, --factor-river=<factor>   smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_river
-        print "    --factor-average=<factor> smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_average
+        print "    --factor-even=<factor>    smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_even
         print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
         print "    --cover-depth=<val>       depth of blocks transferred from original surface"
@@ -461,8 +461,8 @@ class MergeCommand(Command):
         for opt, arg in opts:
             if opt in ('-s', '--factor-river'):
                 merge.ChunkShaper.filt_factor_river = _get_float(arg, 'river smoothing filter factor')
-            elif opt == '--factor-average':
-                merge.ChunkShaper.filt_factor_average = _get_float(arg, 'average smoothing filter factor')
+            elif opt == '--factor-even':
+                merge.ChunkShaper.filt_factor_even = _get_float(arg, 'even smoothing filter factor')
             elif opt in ('-f', '--filter'):
                 if arg in filter.filters:
                     filt_name = arg

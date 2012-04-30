@@ -20,7 +20,7 @@ class ChunkShaper(object):
     shift_depth = 3
     
     filt_factor_river = 1.7
-    filt_factor_average = 1.0
+    filt_factor_even = 1.0
     
     def __init__(self, chunk, contour, height_map, block_roles):
         """ Takes a pymclevel chunk as an initialiser """
@@ -99,8 +99,8 @@ class ChunkShaper(object):
         if method == 'river':
             smoothed, erode_mask = self.erode_valley(filt_name, self.filt_factor_river)
             self.remove(smoothed, erode_mask)
-        elif method in ('average', 'tidy'):
-            smoothed = self.erode_slope(filt_name, self.filt_factor_average)
+        elif method in ('even', 'tidy'):
+            smoothed = self.erode_slope(filt_name, self.filt_factor_even)
             self.elevate(smoothed)
             self.remove(smoothed, None)
         else:
@@ -501,7 +501,7 @@ class Merger(object):
     
     BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'solvent', 'disolve', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
     
-    processing_order = ('average', 'river', 'tidy')
+    processing_order = ('even', 'river', 'tidy')
     
     def __init__(self, world_dir, filt_name):
         self.filt_name = filt_name
