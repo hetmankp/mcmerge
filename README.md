@@ -114,13 +114,13 @@ For advance usage the way the contour is built up may be understand by breaking 
 
 1. First the type of merging to be performed with the edge about to be traced is specified. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
 2. The chunks running along both sides of the traced edged are selected. These may be either:
-   * 'union'      - chunks from both the existing and new edge being added
-   * 'intersect'  - only chunks present in both the existing and the new edge
-   * 'difference' - only chunks present in the new edge but not the old one
+   * union        - chunks from both the existing and new edge being added
+   * intersection - only chunks present in both the existing and the new edge
+   * difference   - only chunks present in the new edge but not the old one
 3. Once the chunks defining the edge have been selected, the type of merge (as specified in step #1) will be applied to those edges chunks. Again, this is one of:
-   * 'add'        - both the merge type from the existing and the new edge are used
-   * 'replace'    - for the chunks from the new edge, only use the new merge type
-   * 'transition' - this is mostly like 'replace' however it attempts to perform an 'add' on the chunks
+   * add          - both the merge type from the existing and the new edge are used
+   * replace      - for the chunks from the new edge, only use the new merge type
+   * transition   - this is mostly like 'replace' however it attempts to perform an 'add' on the chunks
                     where the old and new edges meet and does some additional smoothing for a nice
                     transition between the two
 4. Finally once the new edge is fully defined with steps 1-3, it is either added to the contour data along with the old data using --combine, or it replaces the old data entirely by using --discard.
@@ -128,13 +128,109 @@ For advance usage the way the contour is built up may be understand by breaking 
 NOTE: All these option values may be abbreviated by using only the leading letters (or even letter).
 
 ### merge
-There are two filters available that may be specified with --filter, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to give more boring looking results. Note that the filter factors mean different things for the smooth and gauss filters; for the 'smooth' filter, bigger means less smohting, where as for 'gauss' it's the reverse (both will give similar results for a value of about 1.7).
+There are two filters available that may be specified with --filter, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to give more boring looking results. Note that the filter factors mean different things for the smooth and gauss filters; for the 'smooth' filter, bigger means less smoothing, where as for 'gauss' it's the reverse (both will give similar results for a value of about 1.7).
 
 You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. There's also an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk. Finally, the --cover-depth option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley.
 
 While the merge command will by default perform both shifting and merging operations, either one of these can be skipped with the --no-shift and --no-merge options respectively.
 
 Happy merging!
+
+
+Advanced tracing examples
+-------------------------
+
+Here are some examples of how the more advanced tracing features can be used in practice. Most people can skip this section entirely. I will attempt to provide illustrations to clarify this slightly. The illustrations will map one chunk to one character according to the below legend:
+
+        Tracing illustration legend
+
+        # - normal existing chunk   * - no chunk generated yet
+        X - edge side A (capital)   x - edge side B (lower case)
+        R - marked for river merge  E - marked for even merge
+        B - both river and even     C - marked for even and ocean
+        W - water/ocean chunk
+
+### River trace with evened intervals
+
+* This example starts with a trimmed map [1].
+
+* We proceed to do a simple river merge around the outside of the map [2].
+
+        python mcmerge.py trace -r -t river <world>
+
+* So far we have:
+
+        1.                      2.
+        #########*********      ########Rr********
+        #########*********      ########Rrrr******
+        ###########*******      ########RRRr******
+        ###########*******      ##########Rr******
+        ###########*******      ##########Rr******
+        ###########*******      ##########Rr******
+        ###########*******      ##########Rr******
+        ###########*******      ##########Rr******
+
+* We then wish to make a section of the edge be evened out without a river.
+
+* We first need a fully fleshed out map so we have somewhere to cut things out to specify additional edges. So we load out Minecraft and generate the missing chunks [3].
+
+* After this we cut out the part we want to be evened out instead, remember, only the location where the cut out meets the existing edge matters since we will user their intersection [4].
+
+        3.                      4.
+        ########Rr########      ########Rr########
+        ########Rrrr######      ########Rrrr######
+        ########RRRr######      ########RRRr######
+        ##########Rr######      ##########Rr######
+        ##########Rr######      ##########R*****##
+        ##########Rr######      ##########R*****##
+        ##########Rr######      ##########R*****##
+        ##########Rr######      ##########Rr######
+
+* Now we are ready to run the next trace step. We select only the intersection between the old edge, and the new edge that will be generated around our newly cut out section. We also use the join the merge types with 'transition' so we seamlessly go from a river to evened ground to a river again.
+
+        python mcmerge.py trace -t even -s intersect -j tran -b <world>
+
+* This gives us our final result [6] ready to have the missing chunks generated and then be merged with the 'merge' command.
+
+        6.
+        ########Rr########
+        ########Rrrr######
+        ########RRRr######
+        ##########Bb######
+        ##########Ee****##
+        ##########Ee****##
+        ##########Ee****##
+        ##########Bb######
+
+### Evened edge on ocean coastline
+
+* In this example we have trimmed map [1] and when we generate the missing chunks in Minecraft we see that they are all ocean [2].
+
+        1.                      2.
+        #########*********      #########WWWWWWWWW
+        #########*********      #########WWWWWWWWW
+        ###########*******      ###########WWWWWWW
+        ###########*******      ###########WWWWWWW
+        ###########*******      ###########WWWWWWW
+        #############*****      #############WWWWW
+        ##################      ##################
+        ##################      ##################
+
+* Starting with the map in [1] we run a trace command specifying we wish to even out the edge and that we want the border to be filled with ocean water:
+
+        python mcmerge.py trace -r -t even -t ocean <world>
+
+* This gives us the result in [3], ready to have the missing chunks generated and and then be merged with the 'merge' command.
+
+        3.
+        ########Oo********
+        ########Oooo******
+        ########OOOo******
+        ##########Oo******
+        ##########Oooo****
+        ##########OOOooooo
+        ############OOOOOO
+        ##################
 
 
 Revision history
