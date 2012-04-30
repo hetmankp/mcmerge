@@ -59,11 +59,11 @@ Merging your world
 
 Once you have the required bits installed, you can download this tool then fire up the command line and cd over to the location of the script. Then follow these steps:
 
-1.  Backup your world directory. If you or the tool breaks something you'll be able to recover. You can find your singleplayer maps in the following locations:
-   
-    - Windows: %AppData%\\.minecraft\\saves
-    - Linux: $HOME/.minecraft/saves
-    - OS X: ~/Library/Application\ Support/minecraft/saves/
+1.  Backup your world directory. If you or the tool breaks something you'll be able to recover. You can find your singleplayer maps in the following locations (keep the quotation marks if you're not sure):
+
+        - Windows: "%AppData%\.minecraft\saves"
+        - Linux: "$HOME/.minecraft/saves"
+        - OS X: "$HOME/Library/Application Support/minecraft/saves"
 
 2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. To do this run (make sure you have the correct world name):
 
