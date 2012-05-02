@@ -65,7 +65,7 @@ Once you have the required bits installed, you can download this tool then fire 
         - Linux: "$HOME/.minecraft/saves"
         - OS X: "$HOME/Library/Application Support/minecraft/saves"
 
-2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. To do this run (make sure you have the correct world name):
+2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. Run the following command to mark which blocks will be shifted (make sure you have the correct world name):
 
         python mcmerge.py shift "%AppData%\.minecraft\saves\World"
 
@@ -279,3 +279,14 @@ Revision history
 
 ### v0.5.3
 - Added support for Anvil map format
+
+### v0.6.0
+- Reorganised the command line interface for completely independent commands, much easier to find and use options
+- New contour file format giving expanded merging abilities
+- New merge mode to even out terrain topography without a river
+- New merge mode allowing removed blocks below sea level to be replaced with water instead of air, i.e. water spills over onto coast
+- Block shifting now delayed until merging step by default, i.e. possible to shift even after new chunks are generated
+- New tracing options allowing different merge modes to be specified as well as advanced options to permit transitions between modes
+- Better mergin performance
+- Fixed bug where water one block above sea level would not be removed while erroding terrain
+- Fixed crash when empty contour data file was given
