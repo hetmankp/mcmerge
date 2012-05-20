@@ -30,7 +30,7 @@ class Contour(object):
     
     class SelectOperation(object):
         __metaclass__ = ancillary.Enum
-        __elements__ = ('union', 'intersection', 'difference')
+        __elements__ = ('union', 'intersection', 'difference', 'missing')
         
     class JoinMethod(object):
         __metaclass__ = ancillary.Enum
@@ -93,7 +93,7 @@ class Contour(object):
             
         return edges
     
-    def __select(self, op, trace):
+    def __select_edge(self, op, trace):
         """
         Selects edges from the list provided by taking the set
         operation between the exsiting and new edge sets and
@@ -114,9 +114,9 @@ class Contour(object):
         # Find which chunks to retain in the selection
         else:
             if op == self.SelectOperation.union:
-                    retain = set(trace)
+                retain = set(trace)
             elif op == self.SelectOperation.intersection:
-                    retain = set(trace) & set(self.edges)
+                retain = set(trace) & set(self.edges)
             elif op == self.SelectOperation.difference:
                 retain = set(trace) - set(self.edges)
             else:
@@ -125,10 +125,33 @@ class Contour(object):
         # Return only selected edges
         return dict((coord, trace[coord]) for coord in retain)
         
-    def __join(self, op, new_methods, trace):
+    def __select_direct(self, op, level):
+        """
+        Creates new edge out of chunks in the old one based
+        on the world map.
+        """
+        
+        # This will be a fairly common case so let's speed it up
+        if not self.edges:
+            if op == self.SelectOperation.missing:
+                return {}
+            else:
+                raise NameError("unknown selection type '%s'" % op)
+            
+        # Find which chunks to retain in the selection
+        else:
+            all_chunks = set(level.allChunks)
+            if op == self.SelectOperation.missing:
+                return dict((coord, edge.direction) for coord, edge
+                                                    in self.edges.iteritems()
+                                                    if coord not in all_chunks)
+            else:
+                raise NameError("unknown selection type '%s'" % op)
+        
+    def __join(self, op, new_methods, trace, join_finder):
         """
         Joins the existing edge data with the new edge data
-        provided taking care to 
+        provided.
         """
             
         method_bits = reduce(lambda a, x: a | self.methods[x].bit, new_methods, 0)
@@ -162,19 +185,7 @@ class Contour(object):
                 
         # If we are transitioning we also need to find the chunks joining both sets
         if op == self.JoinMethod.transition:
-            # Finding the joining chunks
-            join = set()
-            for coord in (set(edges) & set(self.edges)):
-                # Get a full set of edge features
-                def features(direction):
-                    features = set()
-                    for component in carve.get_features(vec.tuples2vecs(direction)):
-                        features.update(vec.vecs2tuples(component))
-                    return features
-                
-                # Only want edges with no overlaping directions
-                if not (features(self.edges[coord].direction) & features(trace[coord])):
-                    join.add(coord)
+            join = join_finder(trace, edges)
                     
             # We want the merge methods to overlap here
             for coord in join:
@@ -192,6 +203,35 @@ class Contour(object):
                         pass
                 
         return edges
+    
+    def __find_join_edge(self, trace, edges):
+        # Helpers
+        def features(direction):
+            """ Get a full set of edge features """
+            
+            features = set()
+            for component in carve.get_features(vec.tuples2vecs(direction)):
+                features.update(vec.vecs2tuples(component))
+            return features
+        
+        # Finding the joining chunks
+        join = set()
+        for coord in (set(edges) & set(self.edges)):
+            # Only want edges with no overlaping directions
+            if not (features(self.edges[coord].direction) & features(trace[coord])):
+                join.add(coord)
+                
+        return join
+    
+    def __find_join_direct(self, trace, edges):
+        # Find the joining chunks
+        join = set()
+        for coord in edges:
+            for chunk, _ in self.__surrounding(coord):
+                if chunk not in edges and chunk in self.edges:
+                    join.add(chunk)
+                    
+        return join
             
     def trace_world(self, world_dir, methods):
         """
@@ -210,9 +250,17 @@ class Contour(object):
         """
         
         level = mclevel.fromFile(world_dir)
-        trace = self.__trace(mclevel.fromFile(world_dir))
-        trace = self.__select(select, trace)
-        edges = self.__join(join, methods, trace)
+        
+        # NOTE: The 'trace' only records edge contours while the 'edges'
+        #       also specify the merge method for the edge.
+        if select in (self.SelectOperation.missing,):
+            trace = self.__select_direct(select, level)
+            edges = self.__join(join, methods, trace, self.__find_join_direct)
+        else:
+            trace = self.__trace(level)
+            trace = self.__select_edge(select, trace)
+            edges = self.__join(join, methods, trace, self.__find_join_edge)
+        
         if combine:
             self.edges.update(edges)
         else:

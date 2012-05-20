@@ -338,6 +338,10 @@ class TraceCommand(Command):
         print "                                union      - edge chunks from either"
         print "                                intersect  - edge chunks only in both"
         print "                                difference - edge chunks in new but not old"
+        print "                              or select which old edge chunks will be present"
+        print "                              in the new edge directly:"
+        print "                                missing    - all edge chunks where chunks are"
+        print "                                             missing in the current world map"
         print "                              (default: %s)" % contour_select
         print "-j, --join=<method>           join old and new merge type using one of:"
         print "                                add        - both merge types"

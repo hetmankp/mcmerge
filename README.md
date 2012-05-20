@@ -113,10 +113,11 @@ The contour may be built up in multiple steps, however this is quite involved an
 For advance usage the way the contour is built up may be understand by breaking it up into several steps. The key to keep in mind here is that first the new edge is traced out and trimmed by comparing it already existing edge data in the contour file, and then the resultant new edge data is added to the contour file.
 
 1. First the type of merging to be performed with the edge about to be traced is specified. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
-2. The chunks running along both sides of the traced edged are selected. These may be either:
+2. The chunks defining both sides of the desired edge are selected. These may be either:
    * union        - chunks from both the existing and new edge being added
    * intersection - only chunks present in both the existing and the new edge
    * difference   - only chunks present in the new edge but not the old one
+   * missing      - selects every chunk from the old edge in the same location wherever a chunk is missing in the provided world
 3. Once the chunks defining the edge have been selected, the type of merge (as specified in step #1) will be applied to those edges chunks. Again, this is one of:
    * add          - both the merge type from the existing and the new edge are used
    * replace      - for the chunks from the new edge, only use the new merge type
@@ -174,9 +175,41 @@ Here are some examples of how the more advanced tracing features can be used in 
 
 * We first need a fully fleshed out map so we have somewhere to cut things out to specify additional edges. So we load out Minecraft and generate the missing chunks [3].
 
-* After this we cut out the part we want to be evened out instead, remember, only the location where the cut out meets the existing edge matters since we will user their intersection [4].
+* After this we cut out the part we want to be evened out instead, we remove all the chunks that will contain the edge with the new merge method [4a].
 
-        3.                      4.
+        3a.                     4a.
+        ########Rr########      ########Rr########
+        ########Rrrr######      ########Rrrr######
+        ########RRRr######      ########RRRr######
+        ##########Rr######      ##########Rr######
+        ##########Rr######      #######********###
+        ##########Rr######      #######********###
+        ##########Rr######      #######********###
+        ##########Rr######      ##########Rr######
+
+* Now we are ready to run the next trace step. We tell the tracer to form an edge from the intersection of the old edge and the missing chunks. We also use the join the merge types with 'transition' so we seamlessly go from a river to evened ground to a river again.
+
+        python mcmerge.py trace -t even -s missing -j tran -b <world>
+
+* This gives us our final result [6a] ready to have the missing chunks generated and then be merged with the 'merge' command.
+
+        6a.
+        ########Rr########
+        ########Rrrr######
+        ########RRRr######
+        ##########Bb######
+        #######***Ee***###
+        #######***Ee***###
+        #######***Ee***###
+        ##########Bb######
+
+### River trace with evened intervals using set operations
+
+* This is much like the above method but we use the set operation selection type instead. In the step where we perform the specific cutout and perform the trace as follows.
+
+* We cut out the part we want to be evened out, remember, only the location where the cut out meets the existing edge matters since we will user their intersection [4b].
+
+        3b.                     4b.
         ########Rr########      ########Rr########
         ########Rrrr######      ########Rrrr######
         ########RRRr######      ########RRRr######
@@ -190,9 +223,9 @@ Here are some examples of how the more advanced tracing features can be used in 
 
         python mcmerge.py trace -t even -s intersect -j tran -b <world>
 
-* This gives us our final result [6] ready to have the missing chunks generated and then be merged with the 'merge' command.
+* This gives us our final result [6b] ready to have the missing chunks generated and then be merged with the 'merge' command.
 
-        6.
+        6b.
         ########Rr########
         ########Rrrr######
         ########RRRr######
