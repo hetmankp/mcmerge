@@ -129,7 +129,7 @@ For advance usage the way the contour is built up may be understand by breaking 
 NOTE: All these option values may be abbreviated by using only the leading letters (or even letter).
 
 ### merge
-There are two filters available that may be specified with --filter, there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, how it also tends to give more boring looking results. Note that the filter factors mean different things for the smooth and gauss filters; for the 'smooth' filter, bigger means less smoothing, where as for 'gauss' it's the reverse (both will give similar results for a value of about 1.7).
+There are two filters available that may be specified with --filter (or individually with --filter-river and --filter-even), there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, however it also tends to give more boring looking results.
 
 You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. There's also an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk. Finally, the --cover-depth option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley.
 

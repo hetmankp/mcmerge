@@ -13,7 +13,6 @@ contour_combine = False
 merge_types = ['river']
 merge_no_shift = False
 merge_no_merge = False
-filt_name = 'smooth'
 shift_down = 1
 shift_immediate = False
 world_dir = None
@@ -405,11 +404,12 @@ class MergeCommand(Command):
     name = "merge"
     
     short_opts = "s:f:c:d:r:v:"
-    long_opts = ['help', 'factor-river=', 'factor-even=', 'filter=',
-                 'river-width=', 'valley-width=', 'river-height=',
-                 'valley-height=', 'river-centre-deviation=',
-                 'river-width-deviation=', 'river-centre-bend=',
-                 'river-width-bend=','sea-level=', 'narrow-factor=',
+    long_opts = ['help', 'smooth-factor=', 'factor-river=', 'factor-even=',
+                 'filter=', 'filter-river=', 'filter-even=', 'river-width=',
+                 'valley-width=', 'river-height=', 'valley-height=',
+                 'river-centre-deviation=', 'river-width-deviation=',
+                 'river-centre-bend=', 'river-width-bend=',
+                 'sea-level=', 'narrow-factor=',
                  'no-shift', 'no-merge', 'cover-depth=',
                  'contour=', 'no-relight']
     
@@ -421,9 +421,12 @@ class MergeCommand(Command):
         print "commands."
         print 
         print "Options:"
-        print "-s, --factor-river=<factor>   smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_river
-        print "    --factor-even=<factor>    smoothing filter factor, default: %.2f" % merge.ChunkShaper.filt_factor_even
-        print "-f, --filter=<filter>         name of filter to use, default: %s" % filt_name
+        print "-s, --smooth-factor=<factor>  smoothing filter factor for all cases"
+        print "    --factor-river=<factor>   river smoothing factor, default: %.2f" % merge.ChunkShaper.filt_factor_river
+        print "    --factor-even=<factor>    even smoothing factor, default: %.2f" % merge.ChunkShaper.filt_factor_even
+        print "-f, --filter=<filter>         name of filter to use in all cases"
+        print "    --filter-river=<filter>   river filter to use, default: %s" % merge.ChunkShaper.filt_name_river
+        print "    --filter-even=<filter>    even filter to use, default: %s" % merge.ChunkShaper.filt_name_even
         print "                              available: %s" % ', '.join(filter.filters.iterkeys())
         print "    --cover-depth=<val>       depth of blocks transferred from original surface"
         print "                              to carved out valley bottom, default: %d" % merge.ChunkShaper.shift_depth
@@ -456,20 +459,34 @@ class MergeCommand(Command):
         print "                              dark areas"
         
     def parse(self, opts, args):
-        global world_dir, contour_file_name, filt_name
+        global world_dir, contour_file_name
         global merge_no_shift, merge_no_merge
         
         _do_help(self, opts)
         world_dir = _get_world_dir(args)
     
         for opt, arg in opts:
-            if opt in ('-s', '--factor-river'):
+            if opt in ('-s', '--smooth-factor'):
+                merge.ChunkShaper.filt_factor_river = \
+                merge.ChunkShaper.filt_factor_even = \
+                    _get_float(arg, 'smoothing filter factor')
+            elif opt == '--factor-river':
                 merge.ChunkShaper.filt_factor_river = _get_float(arg, 'river smoothing filter factor')
             elif opt == '--factor-even':
                 merge.ChunkShaper.filt_factor_even = _get_float(arg, 'even smoothing filter factor')
             elif opt in ('-f', '--filter'):
                 if arg in filter.filters:
-                    filt_name = arg
+                    merge.ChunkShaper.filt_name_river = merge.ChunkShaper.filt_name_even = arg
+                else:
+                    error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
+            elif opt in ('--filter-river'):
+                if arg in filter.filters:
+                    merge.ChunkShaper.filt_name_river = arg
+                else:
+                    error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
+            elif opt == '--filter-even':
+                if arg in filter.filters:
+                    merge.ChunkShaper.filt_name_even = arg
                 else:
                     error('filter must be one of: %s' % ', '.join(filter.filters.iterkeys()))
             elif opt == '--sea-level':

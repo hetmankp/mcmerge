@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os.path, errno, logging
-import ancillary, cli
+import ancillary, cli, filter
 from various import Shifter, Relighter
 from contour import Contour, ContourLoadError
 from merge import ChunkShaper, Merger
@@ -124,9 +124,9 @@ if __name__ == '__main__':
     elif mode == Modes.merge:
         contour_data_file = os.path.join(cli.world_dir, cli.contour_file_name)
         
-        if cli.filt_name == 'gauss':
+        if 'gauss' in (ChunkShaper.filt_name_river, ChunkShaper.filt_name_even):
             if not hasattr(filter, 'scipy'):
-                print "You must install SciPy to use this filter"
+                print "You must install SciPy to use the '%s' filter" % 'gauss'
                 sys.exit(1)
         
         print "Getting saved world contour..."
@@ -195,7 +195,7 @@ if __name__ == '__main__':
             print
             
             try:
-                merge = Merger(cli.world_dir, cli.filt_name)
+                merge = Merger(cli.world_dir)
             except EnvironmentError, e:
                 error('could not read world data: %s' % e)
             
