@@ -3,7 +3,7 @@ import numpy
 from pymclevel import mclevel
 import pymclevel.materials
 import ancillary, carve, filter, vec
-from contour import Contour, HeightMap
+from contour import Contour, HeightMap, EdgeData
 from carve import ChunkSeed
 
 class ChunkShaper(object):
@@ -21,17 +21,16 @@ class ChunkShaper(object):
     
     filt_name_river = 'smooth'
     filt_factor_river = 1.7
-    filt_name_even = 'smooth'
+    filt_name_even = 'gauss'
     filt_factor_even = 1.0
     
-    def __init__(self, chunk, contour, height_map, block_roles):
+    def __init__(self, chunk, edge, height_map, block_roles):
         """ Takes a pymclevel chunk as an initialiser """
         
         self.__block_roles = block_roles
         self.__chunk = chunk
-        self.__contour = contour
         self.__height_map = height_map
-        self.__edge = contour.edges[self.__chunk.chunkPosition]
+        self.__edge = edge
         self.__edge_direction = vec.tuples2vecs(self.__edge.direction)
         self.__ocean = False
         self.__local_ids = chunk.Blocks.copy()
@@ -40,6 +39,14 @@ class ChunkShaper(object):
         
         self.__height_invalid = True
         self.height     # Initialise the height value
+        
+    @staticmethod
+    def filt_is_river(name):
+        return name == 'river'
+    
+    @staticmethod
+    def filt_is_even(name):
+        return name in ('even', 'tidy')
         
     @property
     def height(self):
@@ -98,10 +105,10 @@ class ChunkShaper(object):
     def __shape(self, method):
         """ Does the reshaping work for a specific shaping method """
         
-        if method == 'river':
+        if self.filt_is_river(method):
             smoothed, erode_mask = self.erode_valley(self.filt_name_river, self.filt_factor_river)
             self.remove(smoothed, erode_mask)
-        elif method in ('even', 'tidy'):
+        elif self.filt_is_even(method):
             smoothed = self.erode_slope(self.filt_name_river, self.filt_factor_even)
             self.elevate(smoothed)
             self.remove(smoothed, None)
@@ -414,6 +421,7 @@ class ChunkShaper(object):
     
 class Merger(object):
     relight = True
+    filt_radius_even = 1
     
     # These form the basis for the height map
     terrain = (
@@ -558,14 +566,20 @@ class Merger(object):
             atr = getter(attrs)
             return set(atr(getattr_or_none(materials, n)) for n in names if hasattr_or_none(materials, n))
     
-    def __have_surrounding(self, coords, radius):
-        """ Check if all surrounding chunks are present """
+    def __give_surrounding(self, coords, radius):
+        """ List all surrounding chunks including the centre """
         
         range = (-radius, radius+1)
         for z in xrange(*range):
             for x in xrange(*range):
-                if (coords[0] + x, coords[1] + z) not in self.__level.allChunks:
-                    return False
+                yield (coords[0] + x, coords[1] + z)
+        
+    def __have_surrounding(self, coords, radius):
+        """ Check if all surrounding chunks are present """
+        
+        for chunk in self.__give_surrounding(coords, radius):
+            if chunk not in self.__level.allChunks:
+                return False
         return True
     
     def erode(self, contour):
@@ -579,19 +593,49 @@ class Merger(object):
             reshaped[method] = []
             
             # Go through all the chunks that require processing
+            processed = set()
             for coord in (k for k, v in contour.edges.iteritems() if v.method & method_bit != 0):
                 # Progress logging
                 if self.log_function is not None:
                     if n % self.log_interval == 0:
                         self.log_function(n)
 
+                # Check if we have to deal with surrounding chunks
+                if ChunkShaper.filt_is_even(method):
+                    radius = self.filt_radius_even
+                else:
+                    radius = 0
+                    
                 # We only re-shape when surrounding chunks are present to prevent river spillage
                 # and ensure padding requirements can be fulfilled
-                if self.__have_surrounding(coord, filter.padding):
-                    cs = ChunkShaper(self.__level.getChunk(*coord), contour, height_map, self.__block_roles)
-                    cs.reshape(method)
+                if self.__have_surrounding(coord, filter.padding + radius):
+                    def reshape(chunk):
+                        # Don't re-process anything
+                        if chunk in processed:
+                            return
+                        
+                        # Process central chunk
+                        if chunk == coord:
+                            edge = contour.edges[chunk]
+                        
+                        # Process chunks on the periphery only
+                        else:
+                            if chunk in contour.edges:
+                                return
+                            else:
+                                print "Peripheral: %s" % repr(chunk)
+                                edge = EdgeData(contour.edges[coord].method, set())
+                            
+                        # Do the processing
+                        cs = ChunkShaper(self.__level.getChunk(*chunk), edge, height_map, self.__block_roles)
+                        cs.reshape(method)
+                        processed.add(chunk)
+                        height_map.invalidations.add(chunk)
+                    
+                    for chunk in self.__give_surrounding(coord, radius):
+                        reshape(chunk)
+                        
                     reshaped[method].append(coord)
-                    height_map.invalidations.add(coord)
                 
                 # Count relevant chunks
                 n += 1
