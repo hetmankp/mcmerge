@@ -402,17 +402,20 @@ class HeightMap(object):
         
         self.__heights.clear()
     
-    def prune(self):
+    def prune(self, radius):
         """
         Removes height maps no longer needing caching given the
         remaining set of contour edges. This prunes the heights
         dictionary used to initialise this object.
+        
+        The radius specifies how many blocks around any chunk
+        would be affected by its removal.
         """
         
         # This is not terribly efficient but we'll let the
         # profiler decide later
         
-        range = (-filter.padding, filter.padding+1)
+        range = (-radius, radius+1)
         
         def still_required(coords):
             for z in xrange(*range):

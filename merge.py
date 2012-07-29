@@ -6,6 +6,9 @@ import ancillary, carve, filter, vec
 from contour import Contour, HeightMap, EdgeData
 from carve import ChunkSeed
 
+# TODO: Split this class into two separate classes. One purely for doing the practical work of reshaping an actual chunk,
+#       and another to plan the contour reshaping heights. The planner could eventually become more flexible having the
+#       knowledge of multiple surrounding chunks.
 class ChunkShaper(object):
     """
     This does processing on a single chunk worth of data
@@ -24,7 +27,7 @@ class ChunkShaper(object):
     filt_name_even = 'gauss'
     filt_factor_even = 1.0
     
-    def __init__(self, chunk, edge, height_map, block_roles):
+    def __init__(self, chunk, edge, padding, height_map, block_roles):
         """ Takes a pymclevel chunk as an initialiser """
         
         self.__block_roles = block_roles
@@ -36,6 +39,7 @@ class ChunkShaper(object):
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
         self.__seeder = ChunkSeed(chunk.world.RandomSeed, chunk.chunkPosition)
+        self.__padding = padding
         
         self.__height_invalid = True
         self.height     # Initialise the height value
@@ -123,7 +127,7 @@ class ChunkShaper(object):
         
         ffun = getattr(filter, filter.filters[filt_name])
         
-        return numpy.cast[self.height.dtype](numpy.round(ffun(self.height, filt_factor, self.chunk_padder)))
+        return numpy.cast[self.height.dtype](numpy.round(ffun(self.height, filt_factor, self.chunk_padder, self.__padding)))
     
     def erode_valley(self, filt_name, filt_factor):
         """
@@ -135,19 +139,19 @@ class ChunkShaper(object):
         
         valley, erode_mask = self.with_valley(self.height)
         carved = self.with_river(valley)
-        return numpy.cast[carved.dtype](numpy.round(ffun(carved, filt_factor, filter.pad))), erode_mask
+        return numpy.cast[carved.dtype](numpy.round(ffun(carved, filt_factor, filter.pad, self.__padding))), erode_mask
     
-    def chunk_padder(self, a):
+    def chunk_padder(self, a, padding):
         """
         Pads the chunk heigh map array 'a' with surrounding chunks
         from the source world.
         """
             
         single_size = a.shape
-        padded_size = tuple(x*(filter.padding*2+1) for x in single_size)
+        padded_size = tuple(x*(padding*2+1) for x in single_size)
         b = numpy.empty(padded_size, a.dtype)
         
-        range = (-filter.padding, filter.padding+1)
+        range = (-padding, padding+1)
         coords = self.__chunk.chunkPosition
         
         # First fill in the surrounding land
@@ -156,14 +160,14 @@ class ChunkShaper(object):
                 if z == 0 and x == 0:
                     continue
                 
-                xoffset = (x + filter.padding)*single_size[0]
-                zoffset = (z + filter.padding)*single_size[1]
+                xoffset = (x + padding)*single_size[0]
+                zoffset = (z + padding)*single_size[1]
                 cheight = self.__height_map[(coords[0] + x, coords[1] + z)]
                 b[xoffset:xoffset+single_size[0], zoffset:zoffset+single_size[1]] = cheight
                 
         # Finally add the data being padded
-        xoffset = (0 + filter.padding)*single_size[0]
-        zoffset = (0 + filter.padding)*single_size[1]
+        xoffset = (0 + padding)*single_size[0]
+        zoffset = (0 + padding)*single_size[1]
         b[xoffset:xoffset+single_size[0], zoffset:zoffset+single_size[1]] = a
         
         return b
@@ -421,7 +425,11 @@ class ChunkShaper(object):
     
 class Merger(object):
     relight = True
+    
     filt_radius_even = 1
+    filt_padding_even = 2
+    filt_radius_river = 0
+    filt_padding_river = 1
     
     # These form the basis for the height map
     terrain = (
@@ -603,12 +611,14 @@ class Merger(object):
                 # Check if we have to deal with surrounding chunks
                 if ChunkShaper.filt_is_even(method):
                     radius = self.filt_radius_even
+                    padding = self.filt_padding_even
                 else:
-                    radius = 0
+                    radius = self.filt_radius_river
+                    padding = self.filt_padding_river
                     
                 # We only re-shape when surrounding chunks are present to prevent river spillage
                 # and ensure padding requirements can be fulfilled
-                if self.__have_surrounding(coord, filter.padding + radius):
+                if self.__have_surrounding(coord, radius + padding):
                     def reshape(chunk):
                         # Don't re-process anything
                         if chunk in processed:
@@ -618,16 +628,17 @@ class Merger(object):
                         if chunk == coord:
                             edge = contour.edges[chunk]
                         
-                        # Process chunks on the periphery only
+                        # Process chunks on the periphery only so that main edge chunks are reshaped right in the centre of the padded area
+                        # TODO: When processing peripheral chunks, they should really be processed along with the central coordinate
+                        #       that is closest to one of the edge contour chunks.
                         else:
                             if chunk in contour.edges:
                                 return
                             else:
-                                print "Peripheral: %s" % repr(chunk)
                                 edge = EdgeData(contour.edges[coord].method, set())
                             
                         # Do the processing
-                        cs = ChunkShaper(self.__level.getChunk(*chunk), edge, height_map, self.__block_roles)
+                        cs = ChunkShaper(self.__level.getChunk(*chunk), edge, padding, height_map, self.__block_roles)
                         cs.reshape(method)
                         processed.add(chunk)
                         height_map.invalidations.add(chunk)
