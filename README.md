@@ -320,7 +320,7 @@ Revision history
 - New merge mode allowing removed blocks below sea level to be replaced with water instead of air, i.e. water spills over onto coast
 - Block shifting now delayed until merging step by default, i.e. possible to shift even after new chunks are generated
 - New tracing options allowing different merge modes to be specified as well as advanced options to permit transitions between modes
-- Better mergin performance
+- Better merging performance
 - Fixed bug where water one block above sea level would not be removed while erroding terrain
 - Fixed crash when empty contour data file was given
 - The Win32 executable can now be run from any working directory
