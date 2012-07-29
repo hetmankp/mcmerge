@@ -1,4 +1,4 @@
-TAG ?= $(shell date '+%Y%m%d_%H%M')
+TAG := $(shell date '+%Y%m%d_%H%M')
 WIN32_PKG = mcmerge-win32-$(TAG).zip
 SCRPT_PKG = mcmerge-script-$(TAG).zip
 BUILD_DIR = build
@@ -31,6 +31,7 @@ $(WINEXE_BUILD)/LICENCE.txt: LICENCE.txt pymclevel/LICENSE.txt
 $(WINEXE_BUILD)/$(WIN32_PKG): $(WINEXE_BUILD)/mcmerge.exe $(WINEXE_BUILD)/LICENCE.txt
 	mkdir -p $(WINEXE_BUILD)
 	cat README.md | sed 's/\\\\/\\/g' > $(WINEXE_BUILD)/README.txt
+	python package_files "$(WINEXE_BUILD)/mcmerge.lib" 'pymclevel/*.yaml' 'pymclevel/*.txt' 'pymclevel/_nbt.*'
 	(cd $(WINEXE_BUILD); zip -r $(WIN32_PKG) *)
 
 $(DIST_DIR)/$(WIN32_PKG): $(WINEXE_BUILD)/$(WIN32_PKG)
@@ -47,7 +48,7 @@ $(SCRIPT_BUILD)/$(SCRPT_PKG): FORCE
 	            -o \( -path */.git -o -path pymclevel/testfiles \
 	            -o -path pymclevel/regression_test \) -prune -o -print \
 	    | while read file; do if [ -d "$$file" ]; then mkdir -p "$(SCRIPT_BUILD)/$$file"; else cp "$$file" "$(SCRIPT_BUILD)/$$file"; fi; done
-	cp $(addprefix pymclevel/,LICENSE.txt README.txt items.txt *.py *.yaml *.txt) $(SCRIPT_BUILD)/pymclevel
+	cp $(addprefix pymclevel/,*.py *.yaml _nbt.* *.txt) $(SCRIPT_BUILD)/pymclevel
 	(cd $(SCRIPT_BUILD); zip -r $(SCRPT_PKG) *)
 
 $(DIST_DIR)/$(SCRPT_PKG): $(SCRIPT_BUILD)/$(SCRPT_PKG)

@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+
+# This is a hack necessary because py2exe can't package up
+# module data files in the package archive.
+
+import sys, glob, zipfile, itertools
+print "Adding module data to package archive:"
+with zipfile.ZipFile(sys.argv[1], 'a') as arch:
+    for file in itertools.chain.from_iterable(glob.glob(x) for x in sys.argv[2:]):
+        print "  File: %s" % file
+        arch.write(file)
+
