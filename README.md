@@ -65,7 +65,7 @@ Once you have the required bits installed, you can download this tool then fire 
         - Linux: "$HOME/.minecraft/saves"
         - OS X: "$HOME/Library/Application Support/minecraft/saves"
 
-2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before 1.8. The sea has been moved down by 1 block in Minecraft 1.8 and it is recommended you adjust the map accordingly. Run the following command to mark which blocks will be shifted (make sure you have the correct world name):
+2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before b1.8. The sea has been moved down by 1 block in Minecraft b1.8 and it is recommended you adjust the map accordingly. Run the following command to mark which blocks will be shifted (make sure you have the correct world name):
 
         python mcmerge.py shift "%AppData%\.minecraft\saves\World"
 
@@ -275,9 +275,9 @@ Revision history
 
 ### v0.2
 - Fixed --help switch so works without supplying world
-- Modified sea level to be 1.8 compatible and added extra step to fix sea level disconnect
+- Modified sea level to be b1.8 compatible and added extra step to fix sea level disconnect
 - Ice is no longer treated as terrain to place river in
-- Updated to latest version of pymclevel; better support for 1.8 blocks
+- Updated to latest version of pymclevel; better support for b1.8 blocks
 - River corners now look rounder
 - Fixed exception with very wide valley/river values
 - Instead of exposed stone being transformed to dirt, the whole top layer is now shifted down; new switch controlling depth of this layer added
@@ -323,3 +323,4 @@ Revision history
 - Better mergin performance
 - Fixed bug where water one block above sea level would not be removed while erroding terrain
 - Fixed crash when empty contour data file was given
+- The Win32 executable can now be run from any working directory
