@@ -324,3 +324,7 @@ Revision history
 - Fixed bug where water one block above sea level would not be removed while erroding terrain
 - Fixed crash when empty contour data file was given
 - The Win32 executable can now be run from any working directory
+
+### v0.6.1
+- Updated pymclevel for better Minecraft 1.3 support
+- Algorithm recognises more blocks correctly (e.g. jungle trees)
