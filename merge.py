@@ -438,14 +438,14 @@ class Merger(object):
     # Unused block types (only here for documentation)
     unused = (
         # Alpha blocks
-        'Air', 'Black Wool', 'Blue Wool', 'Brown Wool', 'Button', 'Cyan Wool', 'Fire', 'Gray Wool', 'Green Wool',
-        'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool', 'Lime Wool', 'Magenta Wool', 'Nether Portal',
-        'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head', 'Portal Frame', 'Purple Wool', 'Red Wool',
-        'Redstone Torch (off)', 'Redstone Torch (on)', 'Sticky Piston', 'Torch', 'Wall Sign', 'White Wool',
-        'Yellow Wool'
+        'Air', 'Black Wool', 'Blue Wool', 'Brown Wool', 'Button', 'Cocoa Plant', 'Cyan Wool', 'Fire',
+        'Gray Wool', 'Green Wool', 'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool', 'Lime Wool',
+        'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head', 'Portal Frame',
+        'Purple Wool', 'Red Wool', 'Redstone Torch (off)', 'Redstone Torch (on)', 'Sticky Piston', 'Torch',
+        'Tripwire', 'Tripwire Hook', 'Wall Sign', 'White Wool', 'Yellow Wool',
         
         # Indev/classic
-        'Aqua Wool', 'Indigo Wool', 'Violet Wool'
+        'Aqua Wool', 'Indigo Wool', 'Violet Wool',
         
         # Indev
         'Cog',
@@ -454,16 +454,21 @@ class Merger(object):
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
-        'Bedrock', 'Block of Diamond', 'Block of Gold', 'Block of Iron', 'Brick', 'Brick Slab', 'Brick Stairs',
+        'Bedrock', 'Birch-Wood Double Slab', 'Birch-Wood Slab', 'Birch-Wood Stairs', 'Block of Diamond',
+        'Block of Emerald', 'Block of Gold', 'Block of Iron', 'Brick', 'Brick Slab', 'Brick Stairs',
         'Circle Stone Bricks', 'Clay', 'Coal Ore', 'Cobblestone', 'Cobblestone Slab', 'Cracked Stone Bricks',
         'Diamond Ore', 'Dirt', 'Double Brick Slab', 'Double Cobblestone Slab', 'Double Sandstone Slab',
         'Double Smooth Stone Slab', 'Double Stone Brick Slab', 'Double Stone Slab', 'Double Wooden Slab',
-        'End Stone', 'Glowstone', 'Gold Ore', 'Grass', 'Gravel', 'Hidden Silverfish (Cobblestone)',
-        'Hidden Silverfish (Smooth Stone)', 'Hidden Silverfish (Stone Brick)', 'Iron Ore', 'Lapis Lazuli Block',
-        'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone', 'Mossy Stone Bricks', 'Mycelium', 'Nether Brick',
-        'Nether Stairs', 'Netherrack', 'Obsidian', 'Redstone Ore', 'Redstone Ore (glowing)', 'Sand', 'Sandstone',
-        'Sandstone Slab', 'Snow', 'Soul Sand', 'Stone', 'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks',
-        'Stone Slab', 'Stone Stairs', 'Wood Planks', 'Wooden Slab', 'Wooden Stairs',
+        'Emerald Ore', 'End Stone', 'Glowstone', 'Gold Ore', 'Grass', 'Gravel',
+        'Hidden Silverfish (Cobblestone)', 'Hidden Silverfish (Smooth Stone)',
+        'Hidden Silverfish (Stone Brick)', 'Iron Ore', 'Jungle-Wood Stairs', 'Jungle-Wood Double Slab',
+        'Jungle-Wood Slab', 'Lapis Lazuli Block', 'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone',
+        'Mossy Stone Bricks', 'Mycelium', 'Nether Brick', 'Nether Stairs', 'Netherrack',
+        'Oak-Wood Double Slab', 'Oak-Wood Slab', 'Obsidian', 'Redstone Ore', 'Redstone Ore (glowing)',
+        'Sand', 'Sandstone', 'Sandstone Slab', 'Sandstone Stairs', 'Snow', 'Soul Sand',
+        'Spruce-Wood Double Slab', 'Spruce-Wood Slab', 'Spruce-Wood Stairs', 'Stone', 'Stone Brick Slab',
+        'Stone Brick Stairs', 'Stone Bricks', 'Stone Slab', 'Stone Stairs', 'Wood Planks', 'Wooden Slab',
+        'Wooden Stairs',
         
         # Indev/classic
         'Infinite lava source',
@@ -475,10 +480,10 @@ class Merger(object):
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
         # Alpha blocks
-        '(Unused Shrub)', 'Bed', 'Birch Sapling', 'Bookshelf', 'Brewing Stand', 'Brown Mushroom',
-        'CAULDRON', 'Cake', 'Chest', 'Crafting Table', 'Crops', 'Dead Shrub', 'Detector Rail', 'Dispenser',
-        'Dragon Egg', 'Enchantment Table', 'Ender Portal', 'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Flower',
-        'Furnace', 'Glass', 'Glass Pane', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox',
+        '(Unused Shrub)', 'Bed', 'Birch Sapling', 'Bookshelf', 'Brewing Stand', 'Brown Mushroom', 'CAULDRON',
+        'Cake', 'Chest', 'Crafting Table', 'Crops', 'Dead Shrub', 'Detector Rail', 'Dispenser', 'Dragon Egg',
+        'Enchantment Table', 'Ender Chest', 'Ender Portal', 'Farmland', 'Fence', 'Fence Gate', 'Fern',
+        'Flower', 'Furnace', 'Glass', 'Glass Pane', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox',
         'Jungle Sapling', 'Lilypad', 'Lit Furnace', 'Melon Stem', 'Monster Spawner', 'Nether Fence',
         'Nether Wart', 'Note Block', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem', 'Rail', 'Red Mushroom',
         'Redstone Lamp (off)', 'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)',
