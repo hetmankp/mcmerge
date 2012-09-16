@@ -431,35 +431,63 @@ class Merger(object):
     filt_radius_river = 0
     filt_padding_river = 1
     
+    # Some blocks with same IDs but differing block data have duplicate
+    # names, they are:
+    #   Crops, Sandstone, Wood Planks
+    
+    # Unused block types (only here for documentation)
+    unused = (
+        # Alpha blocks
+        'Air', 'Black Wool', 'Blue Wool', 'Brown Wool', 'Button', 'Cyan Wool', 'Fire', 'Gray Wool', 'Green Wool',
+        'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool', 'Lime Wool', 'Magenta Wool', 'Nether Portal',
+        'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head', 'Portal Frame', 'Purple Wool', 'Red Wool',
+        'Redstone Torch (off)', 'Redstone Torch (on)', 'Sticky Piston', 'Torch', 'Wall Sign', 'White Wool',
+        'Yellow Wool'
+        
+        # Indev/classic
+        'Aqua Wool', 'Indigo Wool', 'Violet Wool'
+        
+        # Indev
+        'Cog',
+    )
+    
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
-        'Bedrock', 'BlockofDiamond', 'BlockofGold', 'BlockofIron', 'Brick', 'BrickSlab', 'BrickStairs',
-        'Clay', 'CoalOre', 'Cobblestone', 'CobblestoneSlab', 'CrackedStoneBricks', 'DiamondOre', 'Dirt',
-        'DoubleBrickSlab', 'DoubleCobblestoneSlab', 'DoubleSandstoneSlab', 'DoubleStoneBrickSlab',
-        'DoubleStoneSlab', 'DoubleWoodenSlab', 'Glowstone', 'GoldOre', 'Grass', 'Gravel',
-        'HiddenSilverfishCobblestone', 'HiddenSilverfishStone', 'HiddenSilverfishStoneBrick',
-        'IronOre', 'LapisLazuliBlock', 'LapisLazuliOre', 'Lava', 'LavaActive', 'MossStone', 'MossyStoneBricks',
-        'Mycelium', 'NetherBrick', 'NetherBrickStairs', 'Netherrack', 'Obsidian', 'RedstoneOre',
-        'RedstoneOreGlowing', 'Sand', 'Sandstone', 'SandstoneSlab', 'Snow', 'SoulSand', 'Stone',
-        'StoneBrickSlab', 'StoneBrickStairs', 'StoneBricks', 'StoneSlab', 'StoneStairs', 'WoodPlanks',
-        'WoodenSlab', 'WoodenStairs'
-        # Indev
-        'InfiniteLava',
+        'Bedrock', 'Block of Diamond', 'Block of Gold', 'Block of Iron', 'Brick', 'Brick Slab', 'Brick Stairs',
+        'Circle Stone Bricks', 'Clay', 'Coal Ore', 'Cobblestone', 'Cobblestone Slab', 'Cracked Stone Bricks',
+        'Diamond Ore', 'Dirt', 'Double Brick Slab', 'Double Cobblestone Slab', 'Double Sandstone Slab',
+        'Double Smooth Stone Slab', 'Double Stone Brick Slab', 'Double Stone Slab', 'Double Wooden Slab',
+        'End Stone', 'Glowstone', 'Gold Ore', 'Grass', 'Gravel', 'Hidden Silverfish (Cobblestone)',
+        'Hidden Silverfish (Smooth Stone)', 'Hidden Silverfish (Stone Brick)', 'Iron Ore', 'Lapis Lazuli Block',
+        'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone', 'Mossy Stone Bricks', 'Mycelium', 'Nether Brick',
+        'Nether Stairs', 'Netherrack', 'Obsidian', 'Redstone Ore', 'Redstone Ore (glowing)', 'Sand', 'Sandstone',
+        'Sandstone Slab', 'Snow', 'Soul Sand', 'Stone', 'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks',
+        'Stone Slab', 'Stone Stairs', 'Wood Planks', 'Wooden Slab', 'Wooden Stairs',
+        
+        # Indev/classic
+        'Infinite lava source',
+        
         # Pocket
-        'Lavaactive',
+        'Redstone Ore (Glowing)',
     )
     
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
-        'AprilFoolsChest', 'Bed', 'BirchSapling', 'Bookshelf', 'BrownMushroom', 'Cake', 'Chest',
-        'CraftingTable', 'Crops', 'DesertShrub2', 'DetectorRail', 'Dispenser', 'Farmland', 'Fence',
-        'FenceGate', 'Flower', 'Furnace', 'Glass', 'GlassPane', 'IronBars', 'IronDoor', 'JackOLantern',
-        'Jukebox', 'Lilypad', 'LitFurnace', 'MelonStem', 'MonsterSpawner', 'NetherBrickFence', 'NetherWart',
-        'NoteBlock', 'PoweredRail', 'Pumpkin', 'PumpkinStem', 'Rail', 'RedMushroom', 'RedstoneRepeaterOff',
-        'RedstoneRepeaterOn', 'RedstoneWire', 'Rose', 'Sapling', 'Shrub', 'Sign', 'SnowLayer', 'Sponge',
-        'SpruceSapling', 'StoneFloorPlate', 'TNT', 'TallGrass', 'Trapdoor', 'UnusedShrub', 'Watermelon',
-        'Web', 'WoodFloorPlate', 'WoodenDoor'
+        # Alpha blocks
+        '(Unused Shrub)', 'Bed', 'Birch Sapling', 'Bookshelf', 'Brewing Stand', 'Brown Mushroom',
+        'CAULDRON', 'Cake', 'Chest', 'Crafting Table', 'Crops', 'Dead Shrub', 'Detector Rail', 'Dispenser',
+        'Dragon Egg', 'Enchantment Table', 'Ender Portal', 'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Flower',
+        'Furnace', 'Glass', 'Glass Pane', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox',
+        'Jungle Sapling', 'Lilypad', 'Lit Furnace', 'Melon Stem', 'Monster Spawner', 'Nether Fence',
+        'Nether Wart', 'Note Block', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem', 'Rail', 'Red Mushroom',
+        'Redstone Lamp (off)', 'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)',
+        'Redstone Wire', 'Rose', 'Sapling', 'Sign', 'Snow Layer', 'Sponge', 'Spruce Sapling',
+        'Stone Pressure Plate', 'TNT', 'Tall Grass', 'Trapdoor', 'Watermelon', 'Web', 'Wooden Door',
+        'Wooden Pressure Plate',
+        
+        # Pocket
+        'Bench', 'Cyan Flower',
     )
     
     # These will never be removed
@@ -470,54 +498,65 @@ class Merger(object):
     # These blocks are able to disolve other blocks
     solvent = (
         # Alpha
-        'Water', 'WaterActive',
-        # Classic
-        'InfiniteWater',
-        # Pocket
-        'Wateractive',
+        'Water', 'Water (active)',
+        
+        # Indev/classic
+        'Infinite water source',
     )
     
     # These blocks will be replaced as specified if underwater (None means completely remove)
     disolve = {
+        # Alpha blocks
         'Grass': 'Dirt',
         'Lava': 'Obsidian',
-        'LavaActive': 'Cobblestone',
+        'Lava (active)': 'Cobblestone',
         'Mycelium': 'Dirt',
         'Snow': 'Dirt',
-        'SnowLayer': None,
+        'Snow Layer': None,
+        
+        # Indev/classic
+        'Infinite lava source': 'Obsidian',
     }
     
     # Ignored when reshaping land
     water = (
         # Alpha
-        'Ice', 'Water', 'WaterActive',
-        # Classic
-        'InfiniteWater',
-        # Pocket
-        'Wateractive',
+        'Ice', 'Water', 'Water (active)',
+        
+        # Indev/classic
+        'Infinite water source',
     )
 
     # Tree trunks
     tree_trunks = (
-        # Alpha
-        'BirchWood', 'Cactus', 'HugeBrownMushroom', 'HugeRedMushroom', 'Ironwood', 'SugarCane', 'Vines', 'Wood',
-        # Pocket
-        'PineWood',
+        'Birch Wood', 'Cactus', 'Huge Brown Mushroom', 'Huge Brown Mushroom (East)',
+        'Huge Brown Mushroom (North)', 'Huge Brown Mushroom (Northeast)', 'Huge Brown Mushroom (Northwest)',
+        'Huge Brown Mushroom (South)', 'Huge Brown Mushroom (Southeast)', 'Huge Brown Mushroom (Southwest)',
+        'Huge Brown Mushroom (Stem)', 'Huge Brown Mushroom (Top)', 'Huge Brown Mushroom (West)',
+        'Huge Red Mushroom', 'Huge Red Mushroom (East)', 'Huge Red Mushroom (North)',
+        'Huge Red Mushroom (Northeast)', 'Huge Red Mushroom (Northwest)', 'Huge Red Mushroom (South)',
+        'Huge Red Mushroom (Southeast)', 'Huge Red Mushroom (Southwest)', 'Huge Red Mushroom (Stem)',
+        'Huge Red Mushroom (Top)', 'Huge Red Mushroom (West)', 'Jungle Wood', 'Pine Wood', 'Sugar Cane',
+        'Vines', 'Wood',
     )
     
     # Leaves and their decayed versions
     tree_leaves = (
-        'BirchLeaves', 'BirchLeavesDecaying', 'JungleLeaves', 'JungleLeavesDecaying',
-        'Leaves', 'LeavesDecaying', 'PineLeaves', 'PineLeavesDecaying'
+        'Birch Leaves', 'Birch Leaves (Decaying)', 'Birch Leaves (Permanent)', 'Jungle Leaves',
+        'Jungle Leaves (Decaying)', 'Jungle Leaves (Permanent)', 'Leaves', 'Leaves (Decaying)',
+        'Leaves (Permanent)', 'Pine Leaves', 'Pine Leaves (Decaying)', 'Pine Leaves (Permanent)',
     )
     
     # Tree trunk replace
     tree_trunks_replace = {
-        # Alpha
-        'BirchWood': 'BirchSapling', 'Ironwood': 'SpruceSapling', 'Wood': 'Sapling',
+        'Birch Wood': 'Birch Sapling', 'Jungle Wood': 'Jungle Sapling', 'Pine Wood': 'Spruce Sapling',
+        'Wood': 'Sapling',
     }
     
-    BlockRoleIDs = collections.namedtuple('BlockIDs', ['terrain', 'supported', 'immutable', 'solvent', 'disolve', 'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace'])
+    BlockRoleIDs = collections.namedtuple('BlockIDs', [
+        'terrain', 'supported', 'immutable', 'solvent', 'disolve',
+        'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace',
+    ])
     
     processing_order = ('even', 'river', 'tidy')
     
@@ -558,21 +597,21 @@ class Merger(object):
             else:
                 return lambda obj: None if obj is None else tuple(None if attr is None else getattr(obj, attr) for attr in attrs)
             
-        def hasattr_or_none(obj, name):
-            return True if name is None else hasattr(obj, name)
+        def hasname_or_none(obj, name):
+            return True if name is None else name in obj
         
-        def getattr_or_none(obj, name):
-            return None if name is None else getattr(obj, name)
+        def getname_or_none(obj, name):
+            return None if name is None else obj[name]
         
-        materials = self.__level.materials
-        if hasattr_or_none(names, 'iteritems'):
+        materials = dict((block.name, block) for block in self.__level.materials)
+        if names is not None and hasattr(names, 'iteritems'):
             atrs = [getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
-            return dict([atrs[i](getattr_or_none(materials, n)) for i, n in enumerate(ns)]
+            return dict([atrs[i](getname_or_none(materials, n)) for i, n in enumerate(ns)]
                         for ns in names.iteritems()
-                        if all(hasattr_or_none(materials, n) for n in ns))
+                        if all(hasname_or_none(materials, n) for n in ns))
         else:
             atr = getter(attrs)
-            return set(atr(getattr_or_none(materials, n)) for n in names if hasattr_or_none(materials, n))
+            return set(atr(getname_or_none(materials, n)) for n in names if hasname_or_none(materials, n))
     
     def __give_surrounding(self, coords, radius):
         """ List all surrounding chunks including the centre """
