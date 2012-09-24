@@ -332,7 +332,7 @@ class TraceCommand(Command):
         print "                                ocean      - add ocean below sea level when"
         print "                                             using 'even'"
         print "                              multiple may be specified (default: %s)" % ', '.join(merge_types)
-        print "-s, --select=<operation>      new edge will be formed by combinging with old"
+        print "-s, --select=<operation>      new edge will be formed by combining with old"
         print "                              edge set using one of:"
         print "                                union      - edge chunks from either"
         print "                                intersect  - edge chunks only in both"
@@ -345,8 +345,8 @@ class TraceCommand(Command):
         print "-j, --join=<method>           join old and new merge type using one of:"
         print "                                add        - both merge types"
         print "                                replace    - only use new merge type"
-        print "                                transition - use both at meeting point but"
-        print "                                             only new for the rest"
+        print "                                transition - use both at exterior meeting"
+        print "                                             point but only new for the rest"
         print "                              (default: %s)" % contour_join
         print "-b, --combine                 combine new and existing data together"
         print "-d, --discard                 retain new data and discard old (default)"
