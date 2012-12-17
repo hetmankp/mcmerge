@@ -442,7 +442,7 @@ class Merger(object):
         'Gray Wool', 'Green Wool', 'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool', 'Lime Wool',
         'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head', 'Portal Frame',
         'Purple Wool', 'Red Wool', 'Redstone Torch (off)', 'Redstone Torch (on)', 'Sticky Piston', 'Torch',
-        'Tripwire', 'Tripwire Hook', 'Wall Sign', 'White Wool', 'Yellow Wool',
+        'Tripwire', 'Tripwire Hook', 'Wall Sign', 'White Wool', 'Wooden Button', 'Yellow Wool',
         
         # Indev/classic
         'Aqua Wool', 'Indigo Wool', 'Violet Wool',
@@ -480,16 +480,17 @@ class Merger(object):
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
         # Alpha blocks
-        '(Unused Shrub)', 'Bed', 'Birch Sapling', 'Bookshelf', 'Brewing Stand', 'Brown Mushroom', 'CAULDRON',
-        'Cake', 'Chest', 'Crafting Table', 'Crops', 'Dead Shrub', 'Detector Rail', 'Dispenser', 'Dragon Egg',
+        '(Unused Shrub)', 'Anvil', 'Bed', 'Beacon Block', 'Birch Sapling', 'Bookshelf', 'Brewing Stand',
+        'Brown Mushroom', 'Cauldron', 'Cake', 'Carrots', 'Chest', 'Cobblestone Wall', 'Command Block',
+        'Crafting Table', 'Crops', 'Dead Shrub', 'Detector Rail', 'Dispenser', 'Dragon Egg',
         'Enchantment Table', 'Ender Chest', 'Ender Portal', 'Farmland', 'Fence', 'Fence Gate', 'Fern',
-        'Flower', 'Furnace', 'Glass', 'Glass Pane', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox',
-        'Jungle Sapling', 'Lilypad', 'Lit Furnace', 'Melon Stem', 'Monster Spawner', 'Nether Fence',
-        'Nether Wart', 'Note Block', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem', 'Rail', 'Red Mushroom',
-        'Redstone Lamp (off)', 'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)',
-        'Redstone Wire', 'Rose', 'Sapling', 'Sign', 'Snow Layer', 'Sponge', 'Spruce Sapling',
-        'Stone Pressure Plate', 'TNT', 'Tall Grass', 'Trapdoor', 'Watermelon', 'Web', 'Wooden Door',
-        'Wooden Pressure Plate',
+        'Flower', 'Flower Pot', 'Furnace', 'Glass', 'Glass Pane', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern",
+        'Jukebox', 'Jungle Sapling', 'Lilypad', 'Lit Furnace', 'Melon Stem', 'Mob Head', 'Monster Spawner',
+        'Mossy Cobblestone Wall', 'Nether Fence', 'Nether Wart', 'Note Block', 'Potatoes', 'Powered Rail',
+        'Pumpkin', 'Pumpkin Stem', 'Rail', 'Red Mushroom', 'Redstone Lamp (off)', 'Redstone Lamp (on)',
+        'Redstone Repeater (off)', 'Redstone Repeater (on)', 'Redstone Wire', 'Rose', 'Sapling', 'Sign',
+        'Snow Layer', 'Sponge', 'Spruce Sapling', 'Stone Pressure Plate', 'TNT', 'Tall Grass', 'Trapdoor',
+        'Watermelon', 'Web', 'Wooden Door', 'Wooden Pressure Plate',
         
         # Pocket
         'Bench', 'Cyan Flower',

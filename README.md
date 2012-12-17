@@ -328,3 +328,6 @@ Revision history
 ### v0.6.1
 - Updated pymclevel for better Minecraft 1.3 support
 - Algorithm recognises more blocks correctly (e.g. jungle trees)
+
+### v0.6.2
+- Updated pymclevel for better Minecraft 1.4 support
