@@ -3,7 +3,7 @@ Contour data file
 
 Below is a description of the contour file syntax for anyone who would like to modify it directly. The contour file is saved in the directory of the Minecraft map to which it refers. Note that release v0.6 changed the contour data file format and it is this format which is described here. However, mcmerge will still understand the old format in case you have maps where the merging wasn't completed.
 
-I'll use BNF notation to draw up the syntax with some explanations in between. Note that literal tokens are enclosed by "" for strings and // for regexs. Also because I'm lazy I use the shorthand _<a: b>_ to mean _<a> where <a> ::= <b>_.
+I'll use BNF notation to draw up the syntax with some explanations in between. Note that literal tokens are enclosed by "" for strings and // for regexs. Also because I'm lazy I use the shorthand _&lt;a: b&gt;_ to mean _&lt;a&gt; where &lt;a&gt; ::= &lt;b&gt;_.
 
 Overview
 --------
@@ -38,14 +38,14 @@ The data consist of lines, one line per chunk. Each chunk is identified by its c
 
     <coordinates> ::= <x_coordinate: INTEGER> <SPACE> <z_coordinate: INTEGER>
 
-For <shift_data> and <merge_data>, the absence of any data is indicated with a "-".
+For &lt;shift_data&gt; and &lt;merge_data&gt;, the absence of any data is indicated with a "-".
 
     <shift_data> ::= "-" | <shift_down: INTEGER>
 
     <merge_data> ::= "-" | (<merge_methods> <SPACE> <edge_definition>)
     <merge_methods> ::= <merge_method>+
 
-The <merge_method> value is one of the tokens as per the below table:
+The &lt;merge_method&gt; value is one of the tokens as per the below table:
 
      token  |  meaning
     --------+-----------------------

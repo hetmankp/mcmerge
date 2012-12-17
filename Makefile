@@ -8,6 +8,12 @@ SCRIPT_BUILD = $(BUILD_DIR)/script
 
 all: $(DIST_DIR)/$(SCRPT_PKG) $(DIST_DIR)/$(WIN32_PKG)
 
+define MD2TXT
+    sed -e 's/\\\\/\\/g' -e 's/&lt;/</g' -e 's/&gt;/>/g' \
+    	| sed -e '/^    /!s/<\/\?code>//g' \
+	| unix2dos
+endef
+
 clean:
 	-rm -r $(BUILD_DIR)
 	-rm -r $(DIST_DIR)
@@ -30,7 +36,8 @@ $(WINEXE_BUILD)/LICENCE.txt: LICENCE.txt pymclevel/LICENSE.txt
 
 $(WINEXE_BUILD)/$(WIN32_PKG): $(WINEXE_BUILD)/mcmerge.exe $(WINEXE_BUILD)/LICENCE.txt
 	mkdir -p $(WINEXE_BUILD)
-	cat README.md | sed 's/\\\\/\\/g' > $(WINEXE_BUILD)/README.txt
+	cat README.md | $(MD2TXT) > $(WINEXE_BUILD)/README.txt
+	cat CONTOUR.md | $(MD2TXT) > $(WINEXE_BUILD)/CONTOUR.txt
 	python package_files "$(WINEXE_BUILD)/mcmerge.lib" 'pymclevel/*.yaml' 'pymclevel/*.txt' 'pymclevel/_nbt.*'
 	(cd $(WINEXE_BUILD); zip -r $(WIN32_PKG) *)
 
@@ -42,7 +49,8 @@ $(SCRIPT_BUILD)/$(SCRPT_PKG): FORCE
 	mkdir -p $(DIST_DIR)
 	-rm -r $(SCRIPT_BUILD)
 	mkdir -p $(SCRIPT_BUILD)
-	cat README.md | sed 's/\\\\/\\/g' > $(SCRIPT_BUILD)/README.txt
+	cat README.md | $(MD2TXT) > $(SCRIPT_BUILD)/README.txt
+	cat CONTOUR.md | $(MD2TXT) > $(SCRIPT_BUILD)/CONTOUR.txt
 	cp LICENCE.txt *.py $(SCRIPT_BUILD)
 	find pymclevel -name '*.pyc' -o -name .gitignore \
 	            -o \( -path */.git -o -path pymclevel/testfiles \

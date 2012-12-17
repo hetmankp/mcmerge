@@ -93,8 +93,11 @@ NOTE: For Windows users using the packaged binary, replace 'python mcmerge.py' w
 Configuration
 -------------
 
-To see what commands are available in the tool, type: python mcmerge.py help
-You can access the options available for each command with: python mcmerge.py help <command_name>
+To see what commands are available in the tool, type: <code>python mcmerge.py help</code>
+
+You can access the options available for each command with: <code>python mcmerge.py help &lt;command_name&gt;</code>
+
+NOTE: With the win32 executable you would just type: <code>mcmerge help</code>
 
 Below are a few comments about the various commands that may be useful.
 
@@ -108,9 +111,9 @@ Shifting is not normally done immediately but the chunks to shift are instead ma
 This is simply used to relight all chunks and does nothing else.
 
 ### trace
-The contour may be built up in multiple steps, however this is quite involved and for most usage scenarios it is recommended to simply use the default setup which will mark out a river around the edge of the world. For more complicated contours additional options are available, this is is however not an ideal interface. A description of the contour data file is also available in the CONTOUR.md file, should anyone wish to build a better GUI tool to perform this tracing.
+The contour may be built up in multiple steps, however this is quite involved and for most usage scenarios it is recommended to simply use the default setup which will mark out a river around the edge of the world. For more complicated contours additional options are available, however since this is done with the command line, it is not an ideal interface. A description of the contour data file is also available in the CONTOUR.md file, should anyone wish to build a better GUI tool to perform this tracing more intuitively.
 
-For advance usage the way the contour is built up may be understand by breaking it up into several steps. The key to keep in mind here is that first the new edge is traced out and trimmed by comparing it already existing edge data in the contour file, and then the resultant new edge data is added to the contour file.
+For advanced usage the way the contour is built up may be understood by breaking it up into several steps. The key to keep in mind here is that first the new edge is traced out and trimmed by comparing it to already existing edge data in the contour file, and then the resulting new edge data formed in this way is added to the contour file that already exists.
 
 1. First the type of merging to be performed with the edge about to be traced is specified. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
 2. The chunks defining both sides of the desired edge are selected. These may be either:
