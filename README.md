@@ -335,3 +335,7 @@ Revision history
 ### v0.6.2
 - Updated pymclevel for better Minecraft 1.4 support
 - Currently only Anvil map format supported for PC (convert older maps with Minecraft first or use v0.6.1)
+
+### v0.6.3
+- Updated pymclevel for better Minecraft 1.5 support
+- Older maps (before Minecraft 1.2 Anvil format) still require conversion using Minecraft first

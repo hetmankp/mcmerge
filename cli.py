@@ -2,7 +2,7 @@ import sys, os.path, getopt
 import carve, contour, filter, various, merge
 
 # Static constants
-version = '0.6.2'
+version = '0.6.3'
 
 # Define option defaults
 contour_file_name = 'contour.dat'
