@@ -6,12 +6,22 @@ DIST_DIR = dist
 WINEXE_BUILD = $(BUILD_DIR)/winexe
 SCRIPT_BUILD = $(BUILD_DIR)/script
 
-all: $(DIST_DIR)/$(SCRPT_PKG) $(DIST_DIR)/$(WIN32_PKG)
+ifeq ($(OS),Windows_NT)
+all: all-script all-win32
+else
+all: all-script
+endif
+
+all-script: $(DIST_DIR)/$(SCRPT_PKG)
+
+all-win32: $(DIST_DIR)/$(WIN32_PKG)
+
+FIXLINE=unix2dos
 
 define MD2TXT
     sed -e 's/\\\\/\\/g' -e 's/&lt;/</g' -e 's/&gt;/>/g' \
     	| sed -e '/^    /!s/<\/\?code>//g' \
-	| unix2dos
+	| $(FIXLINE)
 endef
 
 clean:
@@ -25,14 +35,14 @@ $(WINEXE_BUILD)/mcmerge.exe: FORCE
 
 $(WINEXE_BUILD)/LICENCE.txt: LICENCE.txt pymclevel/LICENSE.txt
 	mkdir -p $(WINEXE_BUILD)
-	echo "mcmerge licence" | unix2dos > $@
-	echo "---------------" | unix2dos >> $@
-	cat LICENCE.txt | unix2dos >> $@
-	echo | unix2dos >> $@
-	echo | unix2dos >> $@
-	echo "pymclevel licence" | unix2dos >> $@
-	echo "-----------------" | unix2dos >> $@
-	cat pymclevel/LICENSE.txt | unix2dos >> $@
+	echo "mcmerge licence" | $(FIXLINE) > $@
+	echo "---------------" | $(FIXLINE) >> $@
+	cat LICENCE.txt | $(FIXLINE) >> $@
+	echo | $(FIXLINE) >> $@
+	echo | $(FIXLINE) >> $@
+	echo "pymclevel licence" | $(FIXLINE) >> $@
+	echo "-----------------" | $(FIXLINE) >> $@
+	cat pymclevel/LICENSE.txt | $(FIXLINE) >> $@
 
 $(WINEXE_BUILD)/$(WIN32_PKG): $(WINEXE_BUILD)/mcmerge.exe $(WINEXE_BUILD)/LICENCE.txt
 	mkdir -p $(WINEXE_BUILD)
@@ -51,7 +61,7 @@ $(SCRIPT_BUILD)/$(SCRPT_PKG): FORCE
 	mkdir -p $(SCRIPT_BUILD)
 	cat README.md | $(MD2TXT) > $(SCRIPT_BUILD)/README.txt
 	cat CONTOUR.md | $(MD2TXT) > $(SCRIPT_BUILD)/CONTOUR.txt
-	cp LICENCE.txt *.py $(SCRIPT_BUILD)
+	cat LICENCE.txt | $(FIXLINE) > $(SCRIPT_BUILD)/LICENCE.txt
 	find pymclevel -name '*.pyc' -o -name .gitignore \
 	            -o \( -path */.git -o -path pymclevel/testfiles \
 	            -o -path pymclevel/regression_test \) -prune -o -print \
