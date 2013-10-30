@@ -439,8 +439,8 @@ class Merger(object):
     unused = (
         # Alpha blocks
         'Air', 'Black Wool', 'Blue Wool', 'Brown Wool', 'Button', 'Cocoa Plant', 'Cyan Wool', 'Fire',
-        'Gray Wool', 'Green Wool', 'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool', 'Lime Wool',
-        'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head',
+        'Gray Wool', 'Green Wool', 'Hay Block', 'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool',
+        'Lime Wool', 'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head',
         'Piston Movement Placeholder', 'Portal Frame', 'Purple Wool', 'Red Wool', 'Redstone Torch (off)',
         'Redstone Torch (on)', 'Sticky Piston', 'Torch', 'Tripwire', 'Tripwire Hook', 'Wall Sign',
         'White Wool', 'Wooden Button', 'Yellow Wool',
@@ -455,21 +455,21 @@ class Merger(object):
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
-        'Bedrock', 'Birch-Wood Double Slab', 'Birch-Wood Slab', 'Birch-Wood Stairs', 'Block of Diamond',
-        'Block of Emerald', 'Block of Gold', 'Block of Iron', 'Block of Quartz', 'Block of Redstone',
-        'Brick', 'Brick Slab', 'Brick Stairs', 'Circle Stone Bricks', 'Clay', 'Coal Ore', 'Cobblestone',
-        'Cobblestone Slab', 'Cracked Stone Bricks', 'Diamond Ore', 'Dirt', 'Double Brick Slab',
-        'Double Cobblestone Slab', 'Double Nether Brick Slab', 'Double Sandstone Slab',
+        'Bedrock', 'Birch-Wood Double Slab', 'Birch-Wood Slab', 'Birch-Wood Stairs', 'Block of Coal',
+        'Block of Diamond', 'Block of Emerald', 'Block of Gold', 'Block of Iron', 'Block of Quartz',
+        'Block of Redstone', 'Brick', 'Brick Slab', 'Brick Stairs', 'Circle Stone Bricks', 'Clay',
+        'Coal Ore', 'Cobblestone', 'Cobblestone Slab', 'Cracked Stone Bricks', 'Diamond Ore', 'Dirt',
+        'Double Brick Slab', 'Double Cobblestone Slab', 'Double Nether Brick Slab', 'Double Sandstone Slab',
         'Double Stone Brick Slab', 'Double Stone Slab', 'Double Wooden Slab', 'Emerald Ore', 'End Stone',
-        'Glowstone', 'Gold Ore', 'Grass', 'Gravel', 'Hidden Silverfish (Cobblestone)',
+        'Glowstone', 'Gold Ore', 'Grass', 'Gravel', 'Hardened Clay', 'Hidden Silverfish (Cobblestone)',
         'Hidden Silverfish (Smooth Stone)', 'Hidden Silverfish (Stone Brick)', 'Iron Ore',
         'Jungle-Wood Stairs', 'Jungle-Wood Double Slab', 'Jungle-Wood Slab', 'Lapis Lazuli Block',
         'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone', 'Mossy Stone Bricks', 'Mycelium',
         'Nether Brick', 'Nether Brick Slab', 'Nether Quartz Ore', 'Nether Stairs', 'Netherrack',
-        'Oak-Wood Double Slab', 'Oak-Wood Slab', 'Obsidian', 'Quartz Stairs', 'Redstone Ore',
+        'Oak-Wood Double Slab', 'Oak-Wood Slab', 'Obsidian', 'Packed Ice', 'Quartz Stairs', 'Redstone Ore',
         'Redstone Ore (glowing)', 'Sand', 'Sandstone', 'Sandstone Slab', 'Sandstone Stairs', 'Snow',
-        'Soul Sand', 'Spruce-Wood Double Slab', 'Spruce-Wood Slab', 'Spruce-Wood Stairs', 'Stone',
-        'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks', 'Stone Slab', 'Stone Stairs',
+        'Soul Sand', 'Spruce-Wood Double Slab', 'Spruce-Wood Slab', 'Spruce-Wood Stairs', 'Stained Clay',
+        'Stone', 'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks', 'Stone Slab', 'Stone Stairs',
         'Wood Planks', 'Wooden Slab', 'Wooden Stairs',
         
         # Indev/classic
@@ -483,18 +483,18 @@ class Merger(object):
     supported = (
         # Alpha blocks
         '(Unused Shrub)', 'Activator Rail', 'Anvil', 'Bed', 'Beacon Block', 'Birch Sapling', 'Bookshelf',
-        'Brewing Stand', 'Brown Mushroom', 'Cauldron', 'Cake', 'Carrots', 'Chest', 'Cobblestone Wall',
+        'Brewing Stand', 'Brown Mushroom', 'Cauldron', 'Cake', 'Carpet', 'Carrots', 'Chest', 'Cobblestone Wall',
         'Command Block', 'Crafting Table', 'Crops', 'Daylight Sensor', 'Dead Shrub', 'Detector Rail',
         'Dispenser', 'Dragon Egg', 'Dropper', 'Enchantment Table', 'Ender Chest', 'Ender Portal',
-        'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Flower', 'Flower Pot', 'Furnace', 'Glass', 'Glass Pane',
+        'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Dandelion', 'Flower Pot', 'Furnace', 'Glass', 'Glass Pane',
         'Hopper', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox', 'Jungle Sapling', 'Lilypad',
         'Lit Furnace', 'Locked Chest', 'Melon Stem', 'Mob Head', 'Monster Spawner', 'Mossy Cobblestone Wall',
         'Nether Fence', 'Nether Wart', 'Note Block', 'Potatoes', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem',
         'Rail', 'Red Mushroom', 'Redstone Comparator (active)', 'Redstone Comparator (inactive)',
         'Redstone Lamp (off)', 'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)',
         'Redstone Wire', 'Rose', 'Sapling', 'Sign', 'Snow Layer', 'Sponge', 'Spruce Sapling',
-        'Stone Pressure Plate', 'TNT', 'Tall Grass', 'Trapdoor', 'Trapped Chest', 'Watermelon', 'Web',
-        'Weighted Pressure Plate (Light)', 'Weighted Pressure Plate (Heavy)', 'Wooden Door',
+        'Stone Pressure Plate', 'Large Flowers', 'TNT', 'Tall Grass', 'Trapdoor', 'Trapped Chest', 'Watermelon',
+        'Web', 'Weighted Pressure Plate (Light)', 'Weighted Pressure Plate (Heavy)', 'Wooden Door',
         'Wooden Pressure Plate',
         
         # Pocket
