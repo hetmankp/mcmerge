@@ -190,7 +190,8 @@ class ChunkShaper(object):
                 # Collect details about blocks on the surface
                 initial = self.height[x, z]
                 below = self.__get_block(local_columns, initial)
-                above_layer = self.__above_blocks(local_columns, x, z, initial, below[0])
+                above = self.__get_block(local_columns, initial + 1) if initial + 1 < my else None
+                supported_layer = self.__supported_blocks(local_columns, x, z, initial, below[0])
                 
                 # Extend the surface
                 deep = materials.Dirt if self.__block_equal(below, materials.Grass) else below
@@ -198,14 +199,16 @@ class ChunkShaper(object):
                 if target + 1 < my:
                     # Chop tree base if any shifting up occured
                     top = self.__get_block(local_columns, target + 1)
-                    if target > initial and top[0] in self.__block_roles.tree_trunks:
+                    if  target > initial \
+                    and above[0] in self.__block_roles.tree_trunks \
+                    and top[0] not in self.__block_roles.tree_trunks:
                         # Replace with sapling
-                        if not self.__place_sapling((x, z, target + 1), top):
+                        if not self.__place_sapling((x, z, target + 1), above):
                             self.__place((x, z, target + 1), self.__empty_block(target + 1))
                     
                     # Place supported blocks
                     else:
-                        for i, block in enumerate(above_layer):
+                        for i, block in enumerate(supported_layer):
                             self.__place((x, z, target + i + 1), block)
                     
                 self.height[x, z] = target
@@ -227,7 +230,7 @@ class ChunkShaper(object):
                 top_layer = [self.__get_block(local_columns, yi)
                              for yi in xrange(initial, initial - self.shift_depth, -1)
                              if yi >= 0]
-                above_layer = self.__above_blocks(local_columns, x, z, initial, below[0])
+                supported_layer = self.__supported_blocks(local_columns, x, z, initial, below[0])
                 
                 for n, y in enumerate(xrange(target + 1, my)):
                     curr_id, curr_data = self.__get_block(local_columns, y)
@@ -240,8 +243,10 @@ class ChunkShaper(object):
                             # Remove tree trunk
                             self.__place((x, z, y), empty)
                             
-                            # Replace with sapling
-                            self.__place_sapling((x, z, target + 1), (curr_id, curr_data))
+                            # Replace with sapling if this looks like the main tree trunk
+                            if y + 1 < my and (curr_id, curr_data) == self.__get_block(local_columns, y + 1):
+                                if not self.__place_sapling((x, z, target + 1), (curr_id, curr_data)):
+                                    self.__place((x, z, target + 1), self.__empty_block(target + 1))
                     
                     elif curr_id in self.__block_roles.tree_leaves:
                         # Mark leaves to be updated when the game loads this map
@@ -255,8 +260,8 @@ class ChunkShaper(object):
                         # Remove if removable
                         if curr_id not in self.__block_roles.immutable:
                             # Decide which block to replace current block with
-                            if n < len(above_layer):
-                                supported_id = above_layer[n]
+                            if n < len(supported_layer):
+                                supported_id = supported_layer[n]
                                 
                                 # Find supported blocks to disolve
                                 if  empty.ID in self.__block_roles.solvent \
@@ -276,7 +281,7 @@ class ChunkShaper(object):
                                 
                                 # Supported blocks must always be on other supporting blocks
                                 if new is empty:
-                                    above_layer = above_layer[0:n]
+                                    supported_layer = supported_layer[0:n]
                             elif y <= self.sea_level and curr_id in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
@@ -332,7 +337,7 @@ class ChunkShaper(object):
         self.__chunk.Data.data = self.__local_data.data
         self.__height_invalid = True
 
-    def __above_blocks(self, local_columns, x, z, y_top, below_id):
+    def __supported_blocks(self, local_columns, x, z, y_top, below_id):
         """Only supported blocks will be kept on the new surface"""
         
         above = []
@@ -397,9 +402,9 @@ class ChunkShaper(object):
     def __place_sapling(self, coords, tree_trunk):
         """ Place a sappling given a specific tree trunk """
         
+        tree = self.__block2pair(tree_trunk)
         for (a, b), sapling in self.__block_roles.tree_trunks_replace.iteritems():
-            tree = self.__block2pair(tree_trunk)
-            if a == tree[0] and b & tree[1]:
+            if a == tree[0] and b == (tree[1] & 0x7):
                 self.__place(coords, sapling)
                 self.__local_data[coords[0], coords[1], coords[2]] |= 8
                 return True
