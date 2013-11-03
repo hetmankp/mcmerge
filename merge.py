@@ -190,18 +190,8 @@ class ChunkShaper(object):
                 # Collect details about blocks on the surface
                 initial = self.height[x, z]
                 below = self.__get_block(local_columns, initial)
-                if self.__inchunk((x, z, initial + 1)):
-                    above = self.__get_block(local_columns, initial + 1)
-                else:
-                    above = None
-                    
-                # Only supported blocks will be kept on the new surface
-                if not above[0] in self.__block_roles.supported \
-                or not (below[0] in self.__block_roles.terrain or
-                        below[0] in self.__block_roles.tree_trunks or
-                        below[0] in self.__block_roles.tree_leaves):
-                    above = None
-                    
+                above_layer = self.__above_blocks(local_columns, x, z, initial, below[0])
+                
                 # Extend the surface
                 deep = materials.Dirt if self.__block_equal(below, materials.Grass) else below
                 self.__replace((x, z, target), initial - target - 1, None, [below, deep])
@@ -214,8 +204,9 @@ class ChunkShaper(object):
                             self.__place((x, z, target + 1), self.__empty_block(target + 1))
                     
                     # Place supported blocks
-                    elif above is not None:
-                        self.__place((x, z, target + 1), above)
+                    else:
+                        for i, block in enumerate(above_layer):
+                            self.__place((x, z, target + i + 1), block)
                     
                 self.height[x, z] = target
         
@@ -229,31 +220,23 @@ class ChunkShaper(object):
         for x in xrange(0, mx):
             for z in xrange(0, mz):
                 local_columns = self.__local_ids[x, z], self.__local_data[x, z]
+                initial = self.height[x, z]
                 target = min(smoothed[x, z], self.height[x, z])
+                
+                below = self.__get_block(local_columns, initial)
+                top_layer = [self.__get_block(local_columns, yi)
+                             for yi in xrange(initial, initial - self.shift_depth, -1)
+                             if yi >= 0]
+                above_layer = self.__above_blocks(local_columns, x, z, initial, below[0])
+                
                 for n, y in enumerate(xrange(target + 1, my)):
                     curr_id, curr_data = self.__get_block(local_columns, y)
-                    below = int(local_columns[0][y - 1])
                     empty = self.__empty_block(y)
                     
-                    # Found a supported block
-                    if n == 0 and curr_id in self.__block_roles.supported and \
-                       (below in self.__block_roles.terrain or
-                        below in self.__block_roles.tree_trunks or
-                        below in self.__block_roles.tree_leaves):
-                           
-                        # Disolve block if underwater
-                        if  empty.ID in self.__block_roles.solvent \
-                        and curr_id in self.__block_roles.disolve:
-                            replace = self.__block_roles.disolve[curr_id]
-                            self.__place((x, z, y), empty if replace is None else replace)
-                        
-                        # Leave block alone
-                        else:
-                            continue
-                    
                     # Eliminate hovering trees but retain the rest
-                    elif n > 0 and curr_id in self.__block_roles.tree_trunks:
-                        if below not in self.__block_roles.tree_trunks:
+                    if n > 0 and curr_id in self.__block_roles.tree_trunks:
+                        under_id = int(local_columns[0][y - 1])
+                        if under_id not in self.__block_roles.tree_trunks:
                             # Remove tree trunk
                             self.__place((x, z, y), empty)
                             
@@ -269,48 +252,31 @@ class ChunkShaper(object):
                     
                     # Otherwise remove the block
                     elif curr_id != empty.ID:
-                        top = []
-                        
                         # Remove if removable
                         if curr_id not in self.__block_roles.immutable:
-                            # Remember what blocks were previously found at the top
-                            if n == 0:
-                                by = self.height[x, z]
-                                top = [self.__get_block(local_columns, yi)
-                                        for yi in xrange(by, by - self.shift_depth, -1)
-                                        if yi >= 0]
-                                
-                                # Disolve top if found to be underwater seabed
-                                if empty.ID in self.__block_roles.solvent:
-                                    if len(top) > 1 and top[1][0] in self.__block_roles.disolve:
-                                        replace = self.__block_roles.disolve[top[1][0]]
-                                        if replace is not None:
-                                            top[1] = replace
-                            
                             # Decide which block to replace current block with
-                            if n == 0:
-                                new = empty
+                            if n < len(above_layer):
+                                supported_id = above_layer[n]
                                 
-                                # Move down supported blocks to new height
-                                by = self.height[x, z] + 1
-                                if by < my:
-                                    supported_id = int(local_columns[0][by])
-                                    if supported_id in self.__block_roles.supported:
-                                        # Find blocks to disolve
-                                        if  empty.ID in self.__block_roles.solvent \
-                                        and supported_id in self.__block_roles.disolve:
-                                            replace = self.__block_roles.disolve[supported_id]
-                                            new = empty if replace is None else replace
-                                            
-                                        # Supported block
-                                        else:
-                                            # Special case, removing blocks to make shorelines look normal
-                                            if y == self.sea_level:
-                                                new = empty
-                                            
-                                            # Supported block retained
-                                            else:
-                                                new = self.__get_block(local_columns, by)
+                                # Find supported blocks to disolve
+                                if  empty.ID in self.__block_roles.solvent \
+                                and supported_id in self.__block_roles.disolve:
+                                    replace = self.__block_roles.disolve[supported_id]
+                                    new = empty if replace is None else replace
+                                    
+                                # Don't dissolve supported block
+                                else:
+                                    # Special case, removing blocks to make shorelines look normal
+                                    if y == self.sea_level:
+                                        new = empty
+                                    
+                                    # Supported block retained
+                                    else:
+                                        new = self.__get_block(local_columns, initial + 1)
+                                
+                                # Supported blocks must always be on other supporting blocks
+                                if new is empty:
+                                    above_layer = above_layer[0:n]
                             elif y <= self.sea_level and curr_id in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
@@ -320,8 +286,16 @@ class ChunkShaper(object):
                             if new is not None:
                                 self.__place((x, z, y), new)
                         
-                        # Pretty things up a little where we've stripped things away
+                        # Extra work if first layer
                         if n == 0:
+                            # Disolve top block in top layer if found to be underwater
+                            if (curr_id if new is None else new) in self.__block_roles.solvent:
+                                if len(top_layer) > 0 and top_layer[0][0] in self.__block_roles.disolve:
+                                    replace = self.__block_roles.disolve[top_layer[0][0]]
+                                    if replace is not None:
+                                        top_layer[0] = replace
+                        
+                            # Pretty things up a little where we've stripped things away
                             removed[x, z] = True
                             
                             if y - 1 >= 0:
@@ -330,11 +304,11 @@ class ChunkShaper(object):
                                     self.__replace((x, z, y - 1), -2, None, [materials.Sand])    # River bed
                                 
                                 # Shift down higher blocks
-                                elif top:
-                                    self.__replace((x, z, y - 1), -len(top), None, top)
+                                elif top_layer:
+                                    self.__replace((x, z, y - 1), -len(top_layer), None, top_layer)
                                 
                                 # Bare dirt to grass
-                                if below == materials.Dirt.ID:
+                                if below[0] == materials.Dirt.ID:
                                     self.__place((x, z, y - 1), materials.Grass)
         
         ### Some improvements can only be made after all the blocks are eroded ###
@@ -358,6 +332,24 @@ class ChunkShaper(object):
         self.__chunk.Data.data = self.__local_data.data
         self.__height_invalid = True
 
+    def __above_blocks(self, local_columns, x, z, y_top, below_id):
+        """Only supported blocks will be kept on the new surface"""
+        
+        above = []
+        if self.__inchunk((x, z, y_top + 1)):
+            block = self.__get_block(local_columns, y_top + 1)
+            if block[0] in self.__block_roles.supported \
+                    and (below_id in self.__block_roles.terrain or
+                         below_id in self.__block_roles.tree_trunks or
+                         below_id in self.__block_roles.tree_leaves):
+                above.append(block)
+                if self.__inchunk((x, z, y_top + 2)):
+                    block = self.__get_block(local_columns, y_top + 2)
+                    if block[0] in self.__block_roles.supported2:
+                        above.append(block)
+        
+        return above
+                
     def __inchunk(self, coords):
         """ Check the coordinates are inside the chunk """
         return all(coords[n] >= 0 and coords[n] < self.__local_ids.shape[n] for n in xrange(0, self.__local_ids.ndim))
