@@ -231,20 +231,20 @@ class ChunkShaper(object):
                 local_columns = self.__local_ids[x, z], self.__local_data[x, z]
                 target = min(smoothed[x, z], self.height[x, z])
                 for n, y in enumerate(xrange(target + 1, my)):
-                    curr, curr_data = self.__get_block(local_columns, y)
+                    curr_id, curr_data = self.__get_block(local_columns, y)
                     below = int(local_columns[0][y - 1])
                     empty = self.__empty_block(y)
                     
                     # Found a supported block
-                    if n == 0 and curr in self.__block_roles.supported and \
+                    if n == 0 and curr_id in self.__block_roles.supported and \
                        (below in self.__block_roles.terrain or
                         below in self.__block_roles.tree_trunks or
                         below in self.__block_roles.tree_leaves):
                            
                         # Disolve block if underwater
                         if  empty.ID in self.__block_roles.solvent \
-                        and curr in self.__block_roles.disolve:
-                            replace = self.__block_roles.disolve[curr]
+                        and curr_id in self.__block_roles.disolve:
+                            replace = self.__block_roles.disolve[curr_id]
                             self.__place((x, z, y), empty if replace is None else replace)
                         
                         # Leave block alone
@@ -252,27 +252,27 @@ class ChunkShaper(object):
                             continue
                     
                     # Eliminate hovering trees but retain the rest
-                    elif n > 0 and curr in self.__block_roles.tree_trunks:
+                    elif n > 0 and curr_id in self.__block_roles.tree_trunks:
                         if below not in self.__block_roles.tree_trunks:
                             # Remove tree trunk
                             self.__place((x, z, y), empty)
                             
                             # Replace with sapling
-                            self.__place_sapling((x, z, target + 1), (curr, curr_data))
+                            self.__place_sapling((x, z, target + 1), (curr_id, curr_data))
                     
-                    elif curr in self.__block_roles.tree_leaves:
+                    elif curr_id in self.__block_roles.tree_leaves:
                         # Mark leaves to be updated when the game loads this map
                         self.__local_data[x, z, y] |= 8
                     
-                    elif curr in self.__block_roles.tree_trunks:
+                    elif curr_id in self.__block_roles.tree_trunks:
                         continue
                     
                     # Otherwise remove the block
-                    elif curr != empty.ID:
+                    elif curr_id != empty.ID:
                         top = []
                         
                         # Remove if removable
-                        if curr not in self.__block_roles.immutable:
+                        if curr_id not in self.__block_roles.immutable:
                             # Remember what blocks were previously found at the top
                             if n == 0:
                                 by = self.height[x, z]
@@ -311,7 +311,7 @@ class ChunkShaper(object):
                                             # Supported block retained
                                             else:
                                                 new = self.__get_block(local_columns, by)
-                            elif y <= self.sea_level and curr in self.__block_roles.water:
+                            elif y <= self.sea_level and curr_id in self.__block_roles.water:
                                 new = None      # Don't remove water below sea level
                             else:
                                 new = empty
@@ -501,6 +501,10 @@ class Merger(object):
         'Bench', 'Burning Furnace', 'Cyan Flower', 'Nether Reactor Core',
     )
     
+    # These will be retained in place if there is a supported block beneath them on top of terrain
+    supported2 = (
+    )
+    
     # These will never be removed
     immutable = (
         # Alpha blocks
@@ -569,8 +573,9 @@ class Merger(object):
     }
     
     BlockRoleIDs = collections.namedtuple('BlockIDs', [
-        'terrain', 'supported', 'immutable', 'solvent', 'disolve',
-        'water', 'tree_trunks', 'tree_leaves', 'tree_trunks_replace',
+        'terrain', 'supported', 'supported2', 'immutable', 'solvent',
+        'disolve', 'water', 'tree_trunks', 'tree_leaves',
+        'tree_trunks_replace',
     ])
     
     processing_order = ('even', 'river', 'tidy')
@@ -580,6 +585,7 @@ class Merger(object):
         self.__block_roles = self.BlockRoleIDs(
             self.__block_material(self.terrain),
             self.__block_material(self.supported),
+            self.__block_material(self.supported2),
             self.__block_material(self.immutable),
             self.__block_material(self.solvent),
             self.__block_material(self.disolve, ('ID', ('ID', 'blockData'))),
