@@ -433,9 +433,9 @@ class Merger(object):
     filt_radius_river = 0
     filt_padding_river = 1
     
-    # Some blocks with same IDs but differing block data have duplicate
-    # names, they are:
-    #   Crops, Sandstone, Wood Planks
+    # We do not name individual blocks with the same IDs but different block data,
+    # in the following cases:
+    #   Crops, Sandstone, Wood Planks, Flower, Large Flowers
     
     # Unused block types (only here for documentation)
     unused = (
@@ -457,21 +457,24 @@ class Merger(object):
     # These form the basis for the height map
     terrain = (
         # Alpha blocks
-        'Bedrock', 'Birch-Wood Double Slab', 'Birch-Wood Slab', 'Birch-Wood Stairs', 'Block of Coal',
+        'Acacia-Wood Double Slab', 'Acacia-Wood Slab', 'Acacia-Wood Stairs', 'Bedrock',
+        'Birch-Wood Double Slab', 'Birch-Wood Slab', 'Birch-Wood Stairs', 'Block of Coal',
         'Block of Diamond', 'Block of Emerald', 'Block of Gold', 'Block of Iron', 'Block of Quartz',
         'Block of Redstone', 'Brick', 'Brick Slab', 'Brick Stairs', 'Circle Stone Bricks', 'Clay',
-        'Coal Ore', 'Cobblestone', 'Cobblestone Slab', 'Cracked Stone Bricks', 'Diamond Ore', 'Dirt',
-        'Double Brick Slab', 'Double Cobblestone Slab', 'Double Nether Brick Slab', 'Double Sandstone Slab',
+        'Coal Ore', 'Cobblestone', 'Cobblestone Slab', 'Cracked Stone Bricks', 'Dark-Oak-Wood Double Slab',
+        'Dark-Oak-Wood Slab', 'Dark-Oak-Wood Stairs', 'Diamond Ore', 'Dirt', 'Double Brick Slab',
+        'Double Cobblestone Slab', 'Double Nether Brick Slab', 'Double Quartz Slab', 'Double Sandstone Slab',
         'Double Stone Brick Slab', 'Double Stone Slab', 'Double Wooden Slab', 'Emerald Ore', 'End Stone',
-        'Glowstone', 'Gold Ore', 'Grass', 'Gravel', 'Hardened Clay', 'Hidden Silverfish (Cobblestone)',
-        'Hidden Silverfish (Smooth Stone)', 'Hidden Silverfish (Stone Brick)', 'Iron Ore',
-        'Jungle-Wood Stairs', 'Jungle-Wood Double Slab', 'Jungle-Wood Slab', 'Lapis Lazuli Block',
-        'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone', 'Mossy Stone Bricks', 'Mycelium',
-        'Nether Brick', 'Nether Brick Slab', 'Nether Quartz Ore', 'Nether Stairs', 'Netherrack',
-        'Oak-Wood Double Slab', 'Oak-Wood Slab', 'Obsidian', 'Packed Ice', 'Quartz Stairs', 'Redstone Ore',
-        'Redstone Ore (glowing)', 'Sand', 'Sandstone', 'Sandstone Slab', 'Sandstone Stairs', 'Snow',
-        'Soul Sand', 'Spruce-Wood Double Slab', 'Spruce-Wood Slab', 'Spruce-Wood Stairs', 'Stained Clay',
-        'Stone', 'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks', 'Stone Slab', 'Stone Stairs',
+        'Glowstone', 'Gold Ore', 'Grass', 'Grassless Dirt', 'Gravel', 'Hardened Clay',
+        'Hidden Silverfish (Cobblestone)', 'Hidden Silverfish (Smooth Stone)',
+        'Hidden Silverfish (Stone Brick)', 'Iron Ore', 'Jungle-Wood Stairs', 'Jungle-Wood Double Slab',
+        'Jungle-Wood Slab', 'Lapis Lazuli Block', 'Lapis Lazuli Ore', 'Lava', 'Lava (active)', 'Moss Stone',
+        'Mossy Stone Bricks', 'Mycelium', 'Nether Brick', 'Nether Brick Slab', 'Nether Quartz Ore',
+        'Nether Stairs', 'Netherrack', 'Oak-Wood Double Slab', 'Oak-Wood Slab', 'Obsidian', 'Packed Ice',
+        'Podzol', 'Quartz Slab', 'Quartz Stairs', 'Red Sand', 'Redstone Ore', 'Redstone Ore (glowing)',
+        'Sand', 'Sandstone', 'Sandstone Slab', 'Sandstone Stairs', 'Snow', 'Soul Sand',
+        'Spruce-Wood Double Slab', 'Spruce-Wood Slab', 'Spruce-Wood Stairs', 'Stained Clay', 'Stone',
+        'Stone Brick Slab', 'Stone Brick Stairs', 'Stone Bricks', 'Stone Slab', 'Stone Stairs',
         'Wood Planks', 'Wooden Slab', 'Wooden Stairs',
         
         # Indev/classic
@@ -484,19 +487,20 @@ class Merger(object):
     # These will be retained in place if there is terrain beneath to support them    
     supported = (
         # Alpha blocks
-        '(Unused Shrub)', 'Activator Rail', 'Anvil', 'Bed', 'Beacon Block', 'Birch Sapling', 'Bookshelf',
-        'Brewing Stand', 'Brown Mushroom', 'Cauldron', 'Cake', 'Carpet', 'Carrots', 'Chest', 'Cobblestone Wall',
-        'Command Block', 'Crafting Table', 'Crops', 'Daylight Sensor', 'Dead Shrub', 'Detector Rail',
-        'Dispenser', 'Dragon Egg', 'Dropper', 'Enchantment Table', 'Ender Chest', 'Ender Portal',
-        'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Dandelion', 'Flower Pot', 'Furnace', 'Glass', 'Glass Pane',
-        'Hopper', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox', 'Jungle Sapling', 'Lilypad',
-        'Lit Furnace', 'Locked Chest', 'Melon Stem', 'Mob Head', 'Monster Spawner', 'Mossy Cobblestone Wall',
-        'Nether Fence', 'Nether Wart', 'Note Block', 'Potatoes', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem',
-        'Rail', 'Red Mushroom', 'Redstone Comparator (active)', 'Redstone Comparator (inactive)',
-        'Redstone Lamp (off)', 'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)',
-        'Redstone Wire', 'Rose', 'Sapling', 'Sign', 'Snow Layer', 'Sponge', 'Spruce Sapling',
-        'Stone Pressure Plate', 'Large Flowers', 'TNT', 'Tall Grass', 'Trapdoor', 'Trapped Chest', 'Watermelon',
-        'Web', 'Weighted Pressure Plate (Light)', 'Weighted Pressure Plate (Heavy)', 'Wooden Door',
+        '(Unused Shrub)', 'Acacia Sapling', 'Activator Rail', 'Anvil', 'Bed', 'Beacon Block', 'Birch Sapling',
+        'Bookshelf', 'Brewing Stand', 'Brown Mushroom', 'Cauldron', 'Cake', 'Carpet', 'Carrots', 'Chest',
+        'Cobblestone Wall', 'Command Block', 'Crafting Table', 'Crops', 'Dark Oak Sapling', 'Daylight Sensor',
+        'Dead Shrub', 'Detector Rail', 'Dispenser', 'Dragon Egg', 'Dropper', 'Enchantment Table', 'Ender Chest',
+        'Ender Portal', 'Farmland', 'Fence', 'Fence Gate', 'Fern', 'Flower', 'Flower Pot', 'Furnace',
+        'Glass', 'Glass Pane', 'Hopper', 'Iron Bars', 'Iron Door', "Jack-o'-Lantern", 'Jukebox',
+        'Jungle Sapling', 'Large Flowers', 'Lilypad', 'Lit Furnace', 'Locked Chest', 'Melon Stem', 'Mob Head',
+        'Monster Spawner', 'Mossy Cobblestone Wall', 'Nether Fence', 'Nether Wart', 'Note Block', 'Oak Sapling',
+        'Potatoes', 'Powered Rail', 'Pumpkin', 'Pumpkin Stem', 'Rail', 'Red Mushroom',
+        'Redstone Comparator (active)', 'Redstone Comparator (inactive)', 'Redstone Lamp (off)',
+        'Redstone Lamp (on)', 'Redstone Repeater (off)', 'Redstone Repeater (on)', 'Redstone Wire', 'Rose',
+        'Sign', 'Snow Layer', 'Sponge', 'Spruce Sapling', 'Stained Glass Pane', 'Stone Pressure Plate',
+        'TNT', 'Tall Grass', 'Trapdoor', 'Trapped Chest', 'Watermelon', 'Web',
+        'Weighted Pressure Plate (Light)', 'Weighted Pressure Plate (Heavy)', 'Wooden Door',
         'Wooden Pressure Plate',
         
         # Pocket
@@ -505,6 +509,7 @@ class Merger(object):
     
     # These will be retained in place if there is a supported block beneath them on top of terrain
     supported2 = (
+        'Large Flowers',
     )
     
     # These will never be removed
@@ -532,6 +537,7 @@ class Merger(object):
         'Lava': 'Obsidian',
         'Lava (active)': 'Cobblestone',
         'Mycelium': 'Dirt',
+        'Podzol': 'Dirt',
         'Snow': 'Dirt',
         'Snow Layer': None,
         
@@ -550,28 +556,30 @@ class Merger(object):
 
     # Tree trunks
     tree_trunks = (
-        'Birch Wood', 'Cactus', 'Huge Brown Mushroom', 'Huge Brown Mushroom (East)',
+        'Acacia Wood', 'Birch Wood', 'Cactus', 'Dark Oak Wood', 'Huge Brown Mushroom', 'Huge Brown Mushroom (East)',
         'Huge Brown Mushroom (North)', 'Huge Brown Mushroom (Northeast)', 'Huge Brown Mushroom (Northwest)',
         'Huge Brown Mushroom (South)', 'Huge Brown Mushroom (Southeast)', 'Huge Brown Mushroom (Southwest)',
         'Huge Brown Mushroom (Stem)', 'Huge Brown Mushroom (Top)', 'Huge Brown Mushroom (West)',
         'Huge Red Mushroom', 'Huge Red Mushroom (East)', 'Huge Red Mushroom (North)',
         'Huge Red Mushroom (Northeast)', 'Huge Red Mushroom (Northwest)', 'Huge Red Mushroom (South)',
         'Huge Red Mushroom (Southeast)', 'Huge Red Mushroom (Southwest)', 'Huge Red Mushroom (Stem)',
-        'Huge Red Mushroom (Top)', 'Huge Red Mushroom (West)', 'Jungle Wood', 'Pine Wood', 'Sugar Cane',
-        'Vines', 'Wood',
+        'Huge Red Mushroom (Top)', 'Huge Red Mushroom (West)', 'Jungle Wood', 'Oak Wood', 'Pine Wood',
+        'Sugar Cane', 'Vines',
     )
     
     # Leaves and their decayed versions
     tree_leaves = (
-        'Birch Leaves', 'Birch Leaves (Decaying)', 'Birch Leaves (Permanent)', 'Jungle Leaves',
-        'Jungle Leaves (Decaying)', 'Jungle Leaves (Permanent)', 'Leaves', 'Leaves (Decaying)',
-        'Leaves (Permanent)', 'Pine Leaves', 'Pine Leaves (Decaying)', 'Pine Leaves (Permanent)',
+        'Acacia Leaves', 'Acacia Leaves (Decaying)', 'Acacia Leaves (Permanent)', 'Birch Leaves',
+        'Birch Leaves (Decaying)', 'Birch Leaves (Permanent)', 'Dark Oak Leaves', 'Dark Oak Leaves (Decaying)',
+        'Dark Oak Leaves (Permanent)', 'Jungle Leaves', 'Jungle Leaves (Decaying)', 'Jungle Leaves (Permanent)',
+        'Leaves', 'Leaves (Decaying)', 'Leaves (Permanent)', 'Pine Leaves', 'Pine Leaves (Decaying)',
+        'Pine Leaves (Permanent)',
     )
     
     # Tree trunk replace
     tree_trunks_replace = {
-        'Birch Wood': 'Birch Sapling', 'Jungle Wood': 'Jungle Sapling', 'Pine Wood': 'Spruce Sapling',
-        'Wood': 'Sapling',
+        'Acacia Wood': 'Acacia Sapling', 'Birch Wood': 'Birch Sapling', 'Dark Oak Wood': 'Dark Oak Sapling',
+        'Jungle Wood': 'Jungle Sapling', 'Oak Wood': 'Oak Sapling', 'Pine Wood': 'Spruce Sapling',
     }
     
     BlockRoleIDs = collections.namedtuple('BlockIDs', [
@@ -626,7 +634,13 @@ class Merger(object):
         def getname_or_none(obj, name):
             return None if name is None else obj[name]
         
-        materials = dict((block.name, block) for block in self.__level.materials)
+        materials = {}
+        for block in self.__level.materials:
+            materials[block.name] = block
+            for alt in (x.strip() for x in block.aka.split(',')):
+                if alt not in materials:
+                    materials[alt] = block
+        
         if names is not None and hasattr(names, 'iteritems'):
             atrs = [getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
             return dict([atrs[i](getname_or_none(materials, n)) for i, n in enumerate(ns)]
