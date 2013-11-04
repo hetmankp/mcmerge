@@ -408,7 +408,7 @@ class MergeCommand(Command):
                  'filter=', 'filter-river=', 'filter-even=', 'river-width=',
                  'valley-width=', 'river-height=', 'valley-height=',
                  'river-centre-deviation=', 'river-width-deviation=',
-                 'river-centre-bend=', 'river-width-bend=',
+                 'river-centre-bend=', 'river-width-bend=', 'river-dry',
                  'sea-level=', 'narrow-factor=',
                  'no-shift', 'no-merge', 'cover-depth=',
                  'contour=', 'no-relight']
@@ -448,6 +448,7 @@ class MergeCommand(Command):
         print "                              default: %.1f" % carve.river_frequency_width
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
+        print "    --river-dry               don't put any water inside the river bed"
         print
         print "    --no-shift                don't perform shifting operations"
         print "    --no-merge                don't perform merging operations"
@@ -514,6 +515,8 @@ class MergeCommand(Command):
                 carve.river_frequency_centre = _get_float(arg, 'river centre bend distance')
             elif opt == '--river-width-bend':
                 carve.river_frequency_width = _get_float(arg, 'river width bend distance')
+            elif opt == '--river-dry':
+                merge.ChunkShaper.river_dry = True
             elif opt == '--narrow-factor':
                 carve.narrowing_factor = _get_int(arg, 'narrowing factor')
             elif opt == '--no-shift':

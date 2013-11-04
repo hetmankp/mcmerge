@@ -19,6 +19,7 @@ class ChunkShaper(object):
     valey_height = 65
     river_height = 58
     sea_level = 62
+    river_dry = False
     
     shift_depth = 3
     
@@ -283,7 +284,10 @@ class ChunkShaper(object):
                                 if new is empty:
                                     supported_layer = supported_layer[0:n]
                             elif y <= self.sea_level and curr_id in self.__block_roles.water:
-                                new = None      # Don't remove water below sea level
+                                if self.river_dry:
+                                    new = empty
+                                else:
+                                    new = None      # Don't remove water below sea level
                             else:
                                 new = empty
                             
@@ -319,6 +323,7 @@ class ChunkShaper(object):
         ### Some improvements can only be made after all the blocks are eroded ###
         
         # Add river water
+        riverbed_material = [materials.Air if self.river_dry else materials.Water]
         if valley_mask is not None:
             for x in xrange(0, mx):
                 for z in xrange(0, mz):
@@ -331,7 +336,7 @@ class ChunkShaper(object):
                         
                     # River water
                     if y <= self.sea_level:
-                        self.__replace((x, z, y), self.sea_level - y + 1, None, [materials.Water])  # River water
+                        self.__replace((x, z, y), self.sea_level - y + 1, None, riverbed_material)  # River water
         
         self.__chunk.Blocks.data = self.__local_ids.data
         self.__chunk.Data.data = self.__local_data.data
