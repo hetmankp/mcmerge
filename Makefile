@@ -63,6 +63,7 @@ $(SCRIPT_BUILD)/$(SCRPT_PKG): FORCE
 	cat README.md | $(MD2TXT) > $(SCRIPT_BUILD)/README.txt
 	cat CONTOUR.md | $(MD2TXT) > $(SCRIPT_BUILD)/CONTOUR.txt
 	cat LICENCE.txt | $(FIXLINE) > $(SCRIPT_BUILD)/LICENCE.txt
+	cp *.py $(SCRIPT_BUILD)
 	find pymclevel -name '*.pyc' -o -name .gitignore \
 	            -o \( -path */.git -o -path pymclevel/testfiles \
 	            -o -path pymclevel/regression_test \) -prune -o -print \
