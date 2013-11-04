@@ -339,3 +339,11 @@ Revision history
 ### v0.6.3
 - Updated pymclevel for better Minecraft 1.5 support
 - Older maps (before Minecraft 1.2 Anvil format) still require conversion using Minecraft first
+
+### v0.7.0
+- Updated to support Minecraft 1.7
+- Added support for double block height flowers
+- Fixed code that replaces removed trees with saplings; previously some saplings were of the wrong kind while others didn't show up at all
+- Fixed some other bugs to do with shifting down surface blocks
+- New option to use dry rivers at the merge interface; use __--river-dry__ option
+- Updated Makefile so it doesn't attempt to build Windows specific stuff on other platforms
