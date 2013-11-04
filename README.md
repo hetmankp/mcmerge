@@ -65,7 +65,7 @@ Once you have the required bits installed, you can download this tool then fire 
         - Linux: "$HOME/.minecraft/saves"
         - OS X: "$HOME/Library/Application Support/minecraft/saves"
 
-2.  Adjust sea height. This step is optional but highly recommended if merging a map from a version of Minecraft before b1.8. The sea has been moved down by 1 block in Minecraft b1.8 and it is recommended you adjust the map accordingly. Run the following command to mark which blocks will be shifted (make sure you have the correct world name):
+2.  Adjust sea height. This step is ___optional___ but highly recommended if merging a map from a version of Minecraft before b1.8 (1.8 Beta). The sea has been moved down by 1 block in Minecraft b1.8 and it is recommended you adjust the map accordingly. Run the following command to mark which blocks will be shifted (make sure you have the correct world name):
 
         python mcmerge.py shift "%AppData%\.minecraft\saves\World"
 
@@ -102,10 +102,10 @@ NOTE: With the win32 executable you would just type: <code>mcmerge help</code>
 Below are a few comments about the various commands that may be useful.
 
 ### *Common*
-Several commands share some options. The name of the contour file found in the world directory may be specified with the --contour option. Contour files are allowed to be built up in several steps, however it is possible to clear all previous data and start fresh by using the --reset option. Finally, commands that manipulate chunks will finish up by relighting them, this step can be skipped for speed by using --no-relight but it may leave some dark spots.
+Several commands share some options. The name of the contour file found in the world directory may be specified with the __-c__/__--contour__ option. Contour files are allowed to be built up in several steps, however it is possible to clear all previous data and start fresh by using the __-r__/__--reset__ option. Finally, commands that manipulate chunks will finish up by relighting them, this step can be skipped for speed by using __--no-relight__ but it may leave some dark spots.
 
 ### shift
-Shifting is not normally done immediately but the chunks to shift are instead marked in the contour file, and only applied with the 'merge' command. However, it is possible to force shifting right away with the --immediate option. You can alter by how many blocks the chunks are shifted up or down by giving a number to the --up or --down options respectively.
+Shifting is not normally done immediately but the chunks to shift are instead marked in the contour file, and only applied with the 'merge' command. However, it is possible to force shifting right away with the __-i__/__--immediate__ option. You can alter by how many blocks the chunks are shifted up or down by giving a number to the __-u__/__--up__ or __-d__/__--down__ options respectively.
 
 ### relight
 This is simply used to relight all chunks and does nothing else.
@@ -115,28 +115,28 @@ The contour may be built up in multiple steps, however this is quite involved an
 
 For advanced usage the way the contour is built up may be understood by breaking it up into several steps. The key to keep in mind here is that first the new edge is traced out and trimmed by comparing it to already existing edge data in the contour file, and then the resulting new edge data formed in this way is added to the contour file that already exists.
 
-1. First the type of merging to be performed with the edge about to be traced is specified. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
-2. The chunks defining both sides of the desired edge are selected. These may be either:
+1. First the type of merging to be performed with the edge about to be traced is specified with __-t__/__--type__. Note that the 'ocean' type isn't a type on its own but rather specifies whether terrain removed below sea level should be filled with water instead of air, in association with other merge types.
+2. The chunks defining both sides of the desired edge are selected with __-s__/__--select__. These may be either:
    * union        - chunks from both the existing and new edge being added
    * intersection - only chunks present in both the existing and the new edge
    * difference   - only chunks present in the new edge but not the old one
    * missing      - selects every chunk from the old edge in the same location wherever a chunk is missing in the provided world
-3. Once the chunks defining the edge have been selected, the type of merge (as specified in step #1) will be applied to those edges chunks. Again, this is one of:
+3. Once the chunks defining the edge have been selected, the type of merge (as specified in step #1) will be applied to those edges chunks with __-j__/__--join__. Again, this is one of:
    * add          - both the merge type from the existing and the new edge are used
    * replace      - for the chunks from the new edge, only use the new merge type
    * transition   - this is mostly like 'replace' however it attempts to perform an 'add' on the chunks
                     where the old and new edges meet and does some additional smoothing for a nice
                     transition between the two
-4. Finally once the new edge is fully defined with steps 1-3, it is either added to the contour data along with the old data using --combine, or it replaces the old data entirely by using --discard.
+4. Finally once the new edge is fully defined with steps 1-3, it is either added to the contour data along with the old data using __-c__/__--combine__, or it replaces the old data entirely by using __-d__/__--discard__.
 
 NOTE: All these option values may be abbreviated by using only the leading letters (or even letter).
 
 ### merge
-There are two filters available that may be specified with --filter (or individually with --filter-river and --filter-even), there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, however it also tends to give more boring looking results.
+There are two filters available that may be specified with __-f__/__--filter__ (or individually with __--filter-river__ and __--filter-even__), there is 'smooth' and 'gauss'. The 'smooth' filter is the default (it's a perfect frequency filter). The gaussian filter gives more regular results and can perform much stronger smoothing, however it also tends to give more boring looking results. There are also multiple options to select the strength of the filtering.
 
-You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with --valley-height), and the sea level at which water will be placed. There are options to control how the river weaves. There's also an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk. Finally, the --cover-depth option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley.
+You can also fiddle with how wide the river and the valley the river flows through are, the height of the river and the height of the river bank (specified with __--valley-height__), and the sea level at which water will be placed. There are options to control how the river weaves. There's also an option for how much the river and valley should be narrowed when a river flows on both sides of a chunk. Finally, the __--cover-depth__ option specifies the depth of blocks that are taken from the surface of the unmerged areas and used as the new surface for the carved out valley.
 
-While the merge command will by default perform both shifting and merging operations, either one of these can be skipped with the --no-shift and --no-merge options respectively.
+While the merge command will by default perform both shifting and merging operations, either one of these can be skipped with the __--no-shift__ and __--no-merge__ options respectively.
 
 Happy merging!
 

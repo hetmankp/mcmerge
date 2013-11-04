@@ -21,6 +21,7 @@ FIXLINE=unix2dos
 define MD2TXT
     sed -e 's/\\\\/\\/g' -e 's/&lt;/</g' -e 's/&gt;/>/g' \
     	| sed -e '/^    /!s/<\/\?code>//g' \
+	| perl -pe 's/__(.*?)__/\1/g' \
 	| $(FIXLINE)
 endef
 
