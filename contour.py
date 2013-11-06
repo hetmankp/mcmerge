@@ -25,7 +25,9 @@ class Contour(object):
         'river': MethodsFields(1, 'R'),
         'even': MethodsFields(2, 'E'),
         'ocean': MethodsFields(4, 'O'),
-        'tidy': MethodsFields(8, 'T'),
+        'dry': MethodsFields(8, 'D'),
+        'desert': MethodsFields(16, 'S'),
+        'tidy': MethodsFields(32, 'T'),
     }
     
     class SelectOperation(object):

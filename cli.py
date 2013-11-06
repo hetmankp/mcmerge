@@ -328,9 +328,15 @@ class TraceCommand(Command):
         print "-t, --type=<val>              type of merge between traced edge chunks"
         print "                              one of:"
         print "                                even       - connect both sides without river"
-        print "                                river      - place river between boths sides"
+        print "                                river      - place river between both sides"
+        print "                              the above types can be further altered with"
+        print "                              the following:"
         print "                                ocean      - add ocean below sea level when"
         print "                                             using 'even'"
+        print "                                dry        - dry out river beds when using"
+        print "                                             'river'"
+        print "                                desert     - dry out pools of water in chunks"
+        print "                                             being eroded with either method"
         print "                              multiple may be specified (default: %s)" % ', '.join(merge_types)
         print "-s, --select=<operation>      new edge will be formed by combining with old"
         print "                              edge set using one of:"
@@ -408,7 +414,7 @@ class MergeCommand(Command):
                  'filter=', 'filter-river=', 'filter-even=', 'river-width=',
                  'valley-width=', 'river-height=', 'valley-height=',
                  'river-centre-deviation=', 'river-width-deviation=',
-                 'river-centre-bend=', 'river-width-bend=', 'river-dry',
+                 'river-centre-bend=', 'river-width-bend=',
                  'sea-level=', 'narrow-factor=',
                  'no-shift', 'no-merge', 'cover-depth=',
                  'contour=', 'no-relight']
@@ -448,7 +454,6 @@ class MergeCommand(Command):
         print "                              default: %.1f" % carve.river_frequency_width
         print "    --narrow-factor=<val>     amount to narrow river/valley when found on"
         print "                              both sides of a chunk, default: %.2f" % carve.narrowing_factor
-        print "    --river-dry               don't put any water inside the river bed"
         print
         print "    --no-shift                don't perform shifting operations"
         print "    --no-merge                don't perform merging operations"
@@ -515,8 +520,6 @@ class MergeCommand(Command):
                 carve.river_frequency_centre = _get_float(arg, 'river centre bend distance')
             elif opt == '--river-width-bend':
                 carve.river_frequency_width = _get_float(arg, 'river width bend distance')
-            elif opt == '--river-dry':
-                merge.ChunkShaper.river_dry = True
             elif opt == '--narrow-factor':
                 carve.narrowing_factor = _get_int(arg, 'narrowing factor')
             elif opt == '--no-shift':

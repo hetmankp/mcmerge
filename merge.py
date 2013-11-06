@@ -19,7 +19,6 @@ class ChunkShaper(object):
     valey_height = 65
     river_height = 58
     sea_level = 62
-    river_dry = False
     
     shift_depth = 3
     
@@ -36,7 +35,9 @@ class ChunkShaper(object):
         self.__height_map = height_map
         self.__edge = edge
         self.__edge_direction = vec.tuples2vecs(self.__edge.direction)
+        self.__desert = False
         self.__ocean = False
+        self.__dry = False
         self.__local_ids = chunk.Blocks.copy()
         self.__local_data = chunk.Data.copy()
         self.__seeder = ChunkSeed(chunk.world.RandomSeed, chunk.chunkPosition)
@@ -60,14 +61,6 @@ class ChunkShaper(object):
             self.__height_invalid = False
             
         return self.__height
-    
-    def __empty_block(self, height=0):
-        """ Returns block corresponding to emptiness """
-        
-        if self.__ocean and height <= self.sea_level:
-            return self.__chunk.world.materials.Water
-        else:
-            return self.__chunk.world.materials.Air
     
     def with_river(self, height):
         """ Carve out unsmoothed river bed """
@@ -103,7 +96,9 @@ class ChunkShaper(object):
         """ Reshape the original chunk to the smoothed out result """
         
         if self.__edge.method & Contour.methods[method].bit:
+            self.__desert = bool(self.__edge.method & Contour.methods['desert'].bit)
             self.__ocean = bool(self.__edge.method & Contour.methods['ocean'].bit)
+            self.__dry = bool(self.__edge.method & Contour.methods['dry'].bit)
             self.__shape(method)
             self.__chunk.chunkChanged()
         
@@ -172,6 +167,14 @@ class ChunkShaper(object):
         b[xoffset:xoffset+single_size[0], zoffset:zoffset+single_size[1]] = a
         
         return b
+    
+    def __empty_block(self, height=0):
+        """ Returns block corresponding to emptiness """
+        
+        if self.__ocean and height <= self.sea_level:
+            return self.__chunk.world.materials.Water
+        else:
+            return self.__chunk.world.materials.Air
     
     def elevate(self, smoothed):
         """ Add chunk blocks until they reach provided height map """
@@ -283,11 +286,8 @@ class ChunkShaper(object):
                                 # Supported blocks must always be on other supporting blocks
                                 if new is empty:
                                     supported_layer = supported_layer[0:n]
-                            elif y <= self.sea_level and curr_id in self.__block_roles.water:
-                                if self.river_dry:
-                                    new = empty
-                                else:
-                                    new = None      # Don't remove water below sea level
+                            elif not self.__desert and y <= self.sea_level and curr_id in self.__block_roles.water:
+                                new = None      # Don't remove water below sea level except in deserts
                             else:
                                 new = empty
                             
@@ -325,7 +325,7 @@ class ChunkShaper(object):
         ### Some improvements can only be made after all the blocks are eroded ###
         
         # Add river water
-        riverbed_material = [materials.Air if self.river_dry else materials.Water]
+        riverbed_material = [materials.Air if self.__dry else materials.Water]
         if valley_mask is not None:
             for x in xrange(0, mx):
                 for z in xrange(0, mz):
