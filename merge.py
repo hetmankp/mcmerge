@@ -252,7 +252,7 @@ class ChunkShaper(object):
                                 if not self.__place_sapling((x, z, target + 1), (curr_id, curr_data)):
                                     self.__place((x, z, target + 1), self.__empty_block(target + 1))
                     
-                    elif curr_id in self.__block_roles.tree_leaves:
+                    elif curr_id in self.__block_roles.update:
                         # Mark leaves to be updated when the game loads this map
                         self.__local_data[x, z, y] |= 8
                     
@@ -443,11 +443,18 @@ class Merger(object):
     unused = (
         # Alpha blocks
         'Air', 'Black Wool', 'Blue Wool', 'Brown Wool', 'Button', 'Cocoa Plant', 'Cyan Wool', 'Fire',
-        'Gray Wool', 'Green Wool', 'Hay Block', 'Ladder', 'Lever', 'Light Blue Wool', 'Light Gray Wool',
-        'Lime Wool', 'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool', 'Piston', 'Piston Head',
-        'Piston Movement Placeholder', 'Portal Frame', 'Purple Wool', 'Red Wool', 'Redstone Torch (off)',
-        'Redstone Torch (on)', 'Sticky Piston', 'Torch', 'Tripwire', 'Tripwire Hook', 'Wall Sign',
-        'White Wool', 'Wooden Button', 'Yellow Wool',
+        'Gray Wool', 'Green Wool', 'Hay Block', 'Huge Brown Mushroom', 'Huge Brown Mushroom (East)',
+        'Huge Brown Mushroom (North)', 'Huge Brown Mushroom (Northeast)', 'Huge Brown Mushroom (Northwest)',
+        'Huge Brown Mushroom (South)', 'Huge Brown Mushroom (Southeast)', 'Huge Brown Mushroom (Southwest)',
+        'Huge Brown Mushroom (Stem)', 'Huge Brown Mushroom (Top)', 'Huge Brown Mushroom (West)',
+        'Huge Red Mushroom', 'Huge Red Mushroom (East)', 'Huge Red Mushroom (North)',
+        'Huge Red Mushroom (Northeast)', 'Huge Red Mushroom (Northwest)', 'Huge Red Mushroom (South)',
+        'Huge Red Mushroom (Southeast)', 'Huge Red Mushroom (Southwest)', 'Huge Red Mushroom (Stem)',
+        'Huge Red Mushroom (Top)', 'Huge Red Mushroom (West)', 'Ladder', 'Lever', 'Light Blue Wool',
+        'Light Gray Wool', 'Lime Wool', 'Magenta Wool', 'Nether Portal', 'Orange Wool', 'Pink Wool',
+        'Piston', 'Piston Head', 'Piston Movement Placeholder', 'Portal Frame', 'Purple Wool', 'Red Wool',
+        'Redstone Torch (off)', 'Redstone Torch (on)', 'Sticky Piston', 'Torch', 'Tripwire',
+        'Tripwire Hook', 'Wall Sign', 'White Wool', 'Wooden Button', 'Yellow Wool',
         
         # Indev/classic
         'Aqua Wool', 'Indigo Wool', 'Violet Wool',
@@ -555,18 +562,11 @@ class Merger(object):
         # Indev/classic
         'Infinite water source',
     )
-
+    
     # Tree trunks
     tree_trunks = (
-        'Acacia Wood', 'Birch Wood', 'Cactus', 'Dark Oak Wood', 'Huge Brown Mushroom', 'Huge Brown Mushroom (East)',
-        'Huge Brown Mushroom (North)', 'Huge Brown Mushroom (Northeast)', 'Huge Brown Mushroom (Northwest)',
-        'Huge Brown Mushroom (South)', 'Huge Brown Mushroom (Southeast)', 'Huge Brown Mushroom (Southwest)',
-        'Huge Brown Mushroom (Stem)', 'Huge Brown Mushroom (Top)', 'Huge Brown Mushroom (West)',
-        'Huge Red Mushroom', 'Huge Red Mushroom (East)', 'Huge Red Mushroom (North)',
-        'Huge Red Mushroom (Northeast)', 'Huge Red Mushroom (Northwest)', 'Huge Red Mushroom (South)',
-        'Huge Red Mushroom (Southeast)', 'Huge Red Mushroom (Southwest)', 'Huge Red Mushroom (Stem)',
-        'Huge Red Mushroom (Top)', 'Huge Red Mushroom (West)', 'Jungle Wood', 'Oak Wood', 'Pine Wood',
-        'Sugar Cane', 'Vines',
+        'Acacia Wood', 'Birch Wood', 'Cactus', 'Dark Oak Wood', 'Jungle Wood', 'Oak Wood', 'Pine Wood',
+        'Sugar Cane',
     )
     
     # Leaves and their decayed versions
@@ -584,10 +584,15 @@ class Merger(object):
         'Jungle Wood': 'Jungle Sapling', 'Oak Wood': 'Oak Sapling', 'Pine Wood': 'Spruce Sapling',
     }
     
+    # Blocks that should also be updated by the game
+    update = tree_leaves + (
+        'Vines',
+    )
+
     BlockRoleIDs = collections.namedtuple('BlockIDs', [
         'terrain', 'supported', 'supported2', 'immutable', 'solvent',
         'disolve', 'water', 'tree_trunks', 'tree_leaves',
-        'tree_trunks_replace',
+        'tree_trunks_replace', 'update',
     ])
     
     processing_order = ('even', 'river', 'tidy')
@@ -604,7 +609,8 @@ class Merger(object):
             self.__block_material(self.water),
             self.__block_material(self.tree_trunks),
             self.__block_material(self.tree_leaves),
-            self.__block_material(self.tree_trunks_replace, (('ID', 'blockData'), None))
+            self.__block_material(self.tree_trunks_replace, (('ID', 'blockData'), None)),
+            self.__block_material(self.update),
         )
         
         self.log_interval = 1
