@@ -411,7 +411,7 @@ class ChunkShaper(object):
         
         tree = self.__block2pair(tree_trunk)
         for (a, b), sapling in self.__block_roles.tree_trunks_replace.iteritems():
-            if a == tree[0] and b == (tree[1] & 0x7):
+            if a == tree[0] and b == tree[1]:
                 self.__place(coords, sapling)
                 self.__local_data[coords[0], coords[1], coords[2]] |= 8
                 return True
@@ -465,28 +465,6 @@ class Merger(object):
         'Gray Wool',
         'Green Wool',
         'Hay Block',
-        'Huge Brown Mushroom',
-        'Huge Brown Mushroom (East)',
-        'Huge Brown Mushroom (North)',
-        'Huge Brown Mushroom (Northeast)',
-        'Huge Brown Mushroom (Northwest)',
-        'Huge Brown Mushroom (South)',
-        'Huge Brown Mushroom (Southeast)',
-        'Huge Brown Mushroom (Southwest)',
-        'Huge Brown Mushroom (Stem)',
-        'Huge Brown Mushroom (Top)',
-        'Huge Brown Mushroom (West)',
-        'Huge Red Mushroom',
-        'Huge Red Mushroom (East)',
-        'Huge Red Mushroom (North)',
-        'Huge Red Mushroom (Northeast)',
-        'Huge Red Mushroom (Northwest)',
-        'Huge Red Mushroom (South)',
-        'Huge Red Mushroom (Southeast)',
-        'Huge Red Mushroom (Southwest)',
-        'Huge Red Mushroom (Stem)',
-        'Huge Red Mushroom (Top)',
-        'Huge Red Mushroom (West)',
         'Jungle Wood (Bark Only)',
         'Ladder',
         'Lever',
@@ -812,6 +790,8 @@ class Merger(object):
         'Dark Oak Wood (East/West)',
         'Dark Oak Wood (North/South)',
         'Dark Oak Wood (Upright)',
+        'Huge Brown Mushroom',
+        'Huge Red Mushroom',
         'Jungle Wood (East/West)',
         'Jungle Wood (North/South)',
         'Jungle Wood (Upright)',
@@ -857,6 +837,8 @@ class Merger(object):
         'Dark Oak Wood (East/West)'     : 'Dark Oak Sapling',
         'Dark Oak Wood (North/South)'   : 'Dark Oak Sapling',
         'Dark Oak Wood (Upright)'       : 'Dark Oak Sapling',
+        'Huge Brown Mushroom (Stem)'    : 'Brown Mushroom',
+        'Huge Red Mushroom (Stem)'      : 'Red Mushroom',
         'Jungle Wood (East/West)'       : 'Jungle Sapling',
         'Jungle Wood (North/South)'     : 'Jungle Sapling',
         'Jungle Wood (Upright)'         : 'Jungle Sapling',
