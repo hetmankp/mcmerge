@@ -294,6 +294,8 @@ class ChunkShaper(object):
                             # Replace current block
                             if new is not None:
                                 self.__place((x, z, y), new)
+                        else:
+                            new = None
                         
                         # Extra work if first layer
                         if n == 0:
