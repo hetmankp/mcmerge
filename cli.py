@@ -16,6 +16,7 @@ merge_no_merge = False
 shift_down = 1
 shift_immediate = False
 world_dir = None
+debug_mode = None
 
 # Validate them
 assert all(x in contour.Contour.methods for x in merge_types)
@@ -179,6 +180,7 @@ class BaseCommand(Command):
         print
         print "Commands:"
         print "  help           display information about specified command"
+        print "  debug          helpful in debugging the utility itself"
         print "  shift          shifts the map height up or down, for example, this is useful"
         print "                 to match sea level heights between version b1.7 and b1.8"
         print "  trace          generates contour data for the original world before"
@@ -212,7 +214,7 @@ class HelpCommand(Command):
         print
         print "Displays information about the given command, or this help if no command was"
         print "specified."
-        print 
+        print
         print "Options:"
         print "-h, --help                    displays this help"
         
@@ -235,6 +237,31 @@ class HelpCommand(Command):
             
         return {}
             
+@__add_command
+class DebugCommand(Command):
+    name = "debug"
+    
+    short_opts = "h"
+    long_opts = ['help', 'materials']
+    
+    def usage(self):
+        print "Usage: %s %s <world_dir>" % (program_name, self.name)
+        print
+        print "This command is useful for debugging the utility"
+        print 
+        print "Options:"
+        print "    --materials               check material definitions"
+        
+    def parse(self, opts, args):
+        global debug_mode
+        
+        _do_help(self, opts)
+        world_dir = _get_world_dir(args)
+    
+        for opt, arg in opts:
+            if opt == '--materials':
+                debug_mode = 'materials'
+
 @__add_command
 class ShiftCommand(Command):
     name = "shift"

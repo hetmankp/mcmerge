@@ -262,6 +262,19 @@ if __name__ == '__main__':
         print
         print "Finished relighting, relit: %d chunks" % relit
     
+    # Debug program
+    elif mode == Modes.debug:
+        print "Debugging: %s" % cli.debug_mode
+        print
+        
+        Merger.BlockParser.debug = True
+        try:
+            merge = Merger(cli.world_dir)
+        except EnvironmentError, e:
+            error('could not read world data: %s' % e)
+        
+        # TODO: Add an option to dump all unmatched names... and all materials not covered by names
+    
     # Should have found the right mode already!
     else:
         error("something went horribly wrong performing mode '%s'" % mode)

@@ -864,37 +864,30 @@ class Merger(object):
     
     processing_order = ('even', 'river', 'tidy')
     
-    def __init__(self, world_dir):
-        self.__level = mclevel.fromFile(world_dir)
-        self.__block_roles = self.BlockRoleIDs(
-            self.__block_material(self.terrain),
-            self.__block_material(self.supported),
-            self.__block_material(self.supported2),
-            self.__block_material(self.immutable),
-            self.__block_material(self.solvent),
-            self.__block_material(self.disolve, ('ID', ('ID', 'blockData'))),
-            self.__block_material(self.water),
-            self.__block_material(self.tree_trunks),
-            self.__block_material(self.tree_leaves),
-            self.__block_material(self.tree_trunks_replace, (('ID', 'blockData'), None)),
-            self.__block_material(self.update),
-        )
+    class BlockParser(object):
+        self.debug = False
         
-        self.log_interval = 1
-        self.log_function = None
-    
-    def __block_material(self, names, attrs='ID'):
-        """
-        Returns block attributes for those names that are present in the loaded level materials.
-        Attemps to retain the original structure of the input set.
-        """
+        def __init__(self, level):
+            self.level = level
+            
+            # Get all materials including alt aliases
+            self.__materials = {}
+            for block in self.level.materials:
+                self.__materials[block.name] = block
+                for alt in (x.strip() for x in block.aka.split(',')):
+                    if alt not in self.__materials:
+                        self.__materials[alt] = block
+            
+            if self.debug:
+                self.__matched = set()
         
-        def cycle(it):
-            if it is None or isinstance(it, basestring):
-                return itertools.repeat(it)
-            else:
-                return itertools.cycle(it)
+        def has_material(name):
+            return True if name is None else name in self.__materials
         
+        def get_material(name):
+            return None if name is None else self.__materials[name]
+        
+        @staticmethod
         def getter(attrs):
             if attrs is None:
                 return lambda obj: obj
@@ -902,30 +895,47 @@ class Merger(object):
                 return lambda obj: None if obj is None else getattr(obj, attrs)
             else:
                 return lambda obj: None if obj is None else tuple(None if attr is None else getattr(obj, attr) for attr in attrs)
+        
+        def material(self, names, attrs='ID'):
+            """
+            Returns block attributes for those names that are present in the loaded level materials.
+            Attemps to retain the original structure of the input set.
+            """
             
-        def hasname_or_none(obj, name):
-            return True if name is None else name in obj
+            def cycle(it):
+                if it is None or isinstance(it, basestring):
+                    return itertools.repeat(it)
+                else:
+                    return itertools.cycle(it)
+            
+            if names is not None and hasattr(names, 'iteritems'):
+                attr_funs = [self.getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
+                return dict([attr_funs[i](self.get_material(n)) for i, n in enumerate(ns)]
+                            for ns in names.iteritems()
+                            if all(self.has_material(n) for n in ns))
+            else:
+                atr = self.getter(attrs)
+                return set(atr(self.get_material(n)) for n in names if self.has_material(n))
+    
+    def __init__(self, world_dir):
+        self.__level = mclevel.fromFile(world_dir)
+        self.__parser = self.BlockParser(self.__level)
+        self.__block_roles = self.BlockRoleIDs(
+            self.__parser.material(self.terrain),
+            self.__parser.material(self.supported),
+            self.__parser.material(self.supported2),
+            self.__parser.material(self.immutable),
+            self.__parser.material(self.solvent),
+            self.__parser.material(self.disolve, ('ID', ('ID', 'blockData'))),
+            self.__parser.material(self.water),
+            self.__parser.material(self.tree_trunks),
+            self.__parser.material(self.tree_leaves),
+            self.__parser.material(self.tree_trunks_replace, (('ID', 'blockData'), None)),
+            self.__parser.material(self.update),
+        )
         
-        def getname_or_none(obj, name):
-            return None if name is None else obj[name]
-        
-        materials = {}
-        for block in self.__level.materials:
-            materials[block.name] = block
-            for alt in (x.strip() for x in block.aka.split(',')):
-                if alt not in materials:
-                    materials[alt] = block
-        
-        # TODO: Add an option to dump all unmatched names... and all materials not covered by names
-        
-        if names is not None and hasattr(names, 'iteritems'):
-            attr_funs = [getter(attr) for attr in itertools.islice(cycle(attrs), 2)]
-            return dict([attr_funs[i](getname_or_none(materials, n)) for i, n in enumerate(ns)]
-                        for ns in names.iteritems()
-                        if all(hasname_or_none(materials, n) for n in ns))
-        else:
-            atr = getter(attrs)
-            return set(atr(getname_or_none(materials, n)) for n in names if hasname_or_none(materials, n))
+        self.log_interval = 1
+        self.log_function = None
     
     def __give_surrounding(self, coords, radius):
         """ List all surrounding chunks including the centre """
