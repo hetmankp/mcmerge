@@ -354,3 +354,7 @@ Revision history
 ### v0.7.2
 - Dry river bed option now an option on trace instead of merge step, i.e. __merge --river-dry__ becomes __trace -t dry__
 - Completely remove giant mushrooms
+
+### v0.8.0
+- Updated to support Minecraft 1.8 snapshot
+- Huge mushrooms are now replanted as small mushrooms
