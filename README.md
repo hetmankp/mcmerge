@@ -350,3 +350,7 @@ Revision history
 
 ### v0.7.1
 - Fixed crash due to immutable blocks
+
+### v0.7.2
+- Dry river bed option now an option on trace instead of merge step, i.e. __merge --river-dry__ becomes __trace -t dry__
+- Completely remove giant mushrooms
