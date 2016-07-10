@@ -64,6 +64,15 @@ class Meander(object):
         self.range = range
         self.final_precision = final_precision
     
+    @property
+    def seed(self):
+        return self._seed
+    
+    @seed.setter
+    def seed(self, val):
+        # Numpy now enforces mtrand 32-bit seed integer restriction
+        self._seed = val & 0xffffffff
+    
     def first(self):
         """
         Return value of the first point of the generated
