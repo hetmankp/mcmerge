@@ -347,3 +347,6 @@ Revision history
 - Fixed some other bugs to do with shifting down surface blocks
 - New option to use dry rivers at the merge interface; use __--river-dry__ option
 - Updated Makefile so it doesn't attempt to build Windows specific stuff on other platforms
+
+### v0.7.1
+- Fixed crash due to immutable blocks
